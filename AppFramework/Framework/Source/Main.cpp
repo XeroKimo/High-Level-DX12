@@ -12,5 +12,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 
 	framework->Run();
 
+	delete framework;
+
     return 0;
 }

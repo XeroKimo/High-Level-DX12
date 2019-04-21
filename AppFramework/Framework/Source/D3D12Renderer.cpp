@@ -201,6 +201,29 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	return true;
 }
 
+void D3D12_Shutdown()
+{
+	D3D12_WaitForPreviousFrame();
+
+	// get swapchain out of full screen before exiting
+	BOOL fs = false;
+	if (swapChain->GetFullscreenState(&fs, NULL))
+		swapChain->SetFullscreenState(false, NULL);
+
+	graphicsDevice->Release();
+	swapChain->Release();
+	commandQueue->Release();
+	rtvDescriptorHeap->Release();
+	commandList->Release();
+
+	for (int i = 0; i < frameBufferCount; ++i)
+	{
+		renderTargets[i]->Release();
+		commandAllocators[i]->Release();
+		fence[i]->Release();
+	};
+}
+
 void D3D12_BeginRender()
 {
 	D3D12_WaitForPreviousFrame();
@@ -295,9 +318,9 @@ bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader)
 {
 	HRESULT hr;
 
-	char shaderTypeVersion[8];
+	char shaderTypeVersion[32];
 	strcpy_s(shaderTypeVersion, 8, shader->shaderType);
-	strncat_s(shaderTypeVersion, 8, shader->shaderVersion, 3);
+	strncat_s(shaderTypeVersion, 8, shader->shaderVersion, 16);
 
 	ID3DBlob* shaderBlob;
 	ID3DBlob* errorBlob;

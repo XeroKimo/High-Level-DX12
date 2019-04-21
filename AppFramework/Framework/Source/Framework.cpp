@@ -8,6 +8,7 @@ Framework::Framework()
 
 Framework::~Framework()
 {
+	D3D12_Shutdown();
 }
 
 bool Framework::Initialize(unsigned int width, unsigned int height)
@@ -71,6 +72,7 @@ bool Framework::InitWindow(unsigned int width, unsigned  int height)
 void Framework::Run()
 {
 #pragma region D3D12 Renderer Testing
+
 	struct VertexDesc {
 		XMFLOAT3 position;
 		XMFLOAT4 color;
@@ -107,8 +109,6 @@ void Framework::Run()
 
 #pragma endregion
 
-
-
     MSG msg = {};
     bool done = false;
     while (!done)
@@ -126,14 +126,27 @@ void Framework::Run()
 		else
 		{
 			D3D12_BeginRender();
+#pragma region D3D12 Render Testing
+
 			D3D12_UsingPipeline(pipelineState, nullptr);
 			D3D12_UsingVertexBuffer(0, 1, vbufferView);
 			D3D12_DrawInstanced(3, 1, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+#pragma endregion
+
 
 
 			D3D12_EndRender();
 		}
     }
+
+#pragma region D3D12 Render Testing Freeing memory
+
+	delete vbufferView;
+
+	pipelineState->Release();
+
+#pragma endregion
 
 }
 

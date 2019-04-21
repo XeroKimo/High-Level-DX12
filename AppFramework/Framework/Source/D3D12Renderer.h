@@ -55,6 +55,7 @@ namespace D3D12Renderer
 }
 
 bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
+void D3D12_Shutdown();
 
 void D3D12_BeginRender();
 void D3D12_EndRender();
