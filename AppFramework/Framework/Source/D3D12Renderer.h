@@ -14,7 +14,7 @@ namespace D3D12Renderer
 	extern ID3D12Device* graphicsDevice;												// The graphics device that will handle the rendering
 	extern ID3D12CommandQueue* commandQueue;											// Responsible for sending command lists to the device for execution
 	extern IDXGISwapChain3* swapChain;													// Swap chain used to switch between render targets
-	extern ID3D12DescriptorHeap* rtvDecriptorHeap;										// Descriptor for the render-targets
+	extern ID3D12DescriptorHeap* rtvDescriptorHeap;										// Descriptor for the render-targets
 	extern ID3D12Resource* renderTargets[];								// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
 	extern ID3D12CommandAllocator* commandAllocators[];	// Have enough command allocators for each buffer * threads
 	extern ID3D12GraphicsCommandList* commandList;										// Records commands for the device to execute
@@ -31,3 +31,9 @@ namespace D3D12Renderer
 }
 
 bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
+
+void D3D12_BeginRender();
+void D3D12_EndRender();
+void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature);
+void D3D12_DispatchCommandList();
+void D3D12_WaitForPreviousFrame();

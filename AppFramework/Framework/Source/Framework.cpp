@@ -84,6 +84,11 @@ void Framework::Run()
 				DispatchMessage(&msg);
 			}
         }
+		else
+		{
+			D3D12_BeginRender();
+			D3D12_EndRender();
+		}
     }
 
 }
