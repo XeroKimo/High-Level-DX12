@@ -110,6 +110,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d12.lib;dxgi.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -146,10 +147,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Framework\Source\D3D12Renderer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Framework\Source\Framework.cpp" />
-    <ClCompile Include="Framework\Source\Main.cpp" />
+    <ClCompile Include="Framework\Source\Main.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Framework\Source\D3D12Renderer.h" />
+    <ClInclude Include="Framework\Source\d3dx12.h" />
     <ClInclude Include="Framework\Source\Framework.h" />
     <ClInclude Include="Framework\Source\FrameworkDefaults.h" />
     <ClInclude Include="Framework\Source\stdafx.h" />

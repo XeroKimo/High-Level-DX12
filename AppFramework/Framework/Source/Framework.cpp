@@ -2,7 +2,8 @@
 
 Framework::Framework()
 {
-
+	m_hInstance = nullptr;
+	m_windowHandle = nullptr;
 }
 
 Framework::~Framework()
@@ -13,6 +14,10 @@ bool Framework::Initialize(unsigned int width, unsigned int height)
 {
 	if (!InitWindow(width, height))
 		return false;
+
+	if (!D3D12_Initialize(width, height, m_windowHandle))
+		return false;
+
 	return true;
 }
 
@@ -40,7 +45,7 @@ bool Framework::InitWindow(unsigned int width, unsigned  int height)
 	}
     // Create the window.
 
-    HWND hwnd = CreateWindowEx(
+    m_windowHandle = CreateWindowEx(
         NULL,                           // Optional window styles.
         CLASS_NAME,                     // Window class
         L"Learn to Program Windows",    // Window text
@@ -53,13 +58,13 @@ bool Framework::InitWindow(unsigned int width, unsigned  int height)
         NULL							// Additional application data
     );
 
-    if (!hwnd)
+    if (!m_windowHandle)
     {
 		MessageBox(NULL, L"Error registering class", L"ERROR", MB_OK | MB_ICONERROR);
         return false;
     }
 
-    ShowWindow(hwnd, SW_SHOW);
+    ShowWindow(m_windowHandle, SW_SHOW);
     return true;
 }
 

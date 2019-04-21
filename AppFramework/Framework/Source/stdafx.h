@@ -5,6 +5,7 @@
 #endif
 
 #include <Windows.h>
+#include "D3D12Renderer.h"
 #include "Framework.h"
 
 #define WINDOW_WIDTH 1280
