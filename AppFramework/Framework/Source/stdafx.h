@@ -10,6 +10,8 @@
 #include <string.h>
 #include <assert.h>
 
+using namespace DirectX;
+
 #include "Framework.h"
 
 #define WINDOW_WIDTH 1280

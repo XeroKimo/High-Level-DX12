@@ -42,4 +42,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Framework\Source\VertexShader.hlsl" />
+    <FxCompile Include="Framework\Source\PixelShader.hlsl" />
+  </ItemGroup>
 </Project>

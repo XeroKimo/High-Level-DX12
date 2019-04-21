@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 #include "d3dx12.h"
 
@@ -57,10 +58,16 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
 
 void D3D12_BeginRender();
 void D3D12_EndRender();
+
 void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature);
+void D3D12_UsingVertexBuffer(UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW* pViews);
+
 void D3D12_DispatchCommandList();
 void D3D12_WaitForPreviousFrame();
 
-bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader);
 ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters);
+bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader);
+ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12_SHADER** arrayOfShaders, unsigned int numOfShaders);
 D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
+
+void D3D12_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology);

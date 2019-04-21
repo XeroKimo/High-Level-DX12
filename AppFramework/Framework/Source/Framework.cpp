@@ -70,6 +70,45 @@ bool Framework::InitWindow(unsigned int width, unsigned  int height)
 
 void Framework::Run()
 {
+#pragma region D3D12 Renderer Testing
+	struct VertexDesc {
+		XMFLOAT3 position;
+		XMFLOAT4 color;
+
+		VertexDesc(XMFLOAT3 pos,  XMFLOAT4 col)
+		{
+			position = pos;
+			color = col;
+		}
+	};
+
+	VertexDesc vertices[3] =
+	{
+		VertexDesc(XMFLOAT3(0.0f, 0.5f ,0.5f)  , XMFLOAT4(1.0f,0.0f,0.0f,1.0f)),
+		VertexDesc(XMFLOAT3(0.5f,-0.5f,0.5f)   , XMFLOAT4(0.0f,0.0f,1.0f,1.0f)),
+		VertexDesc(XMFLOAT3(-0.5f, -0.5f ,0.5f), XMFLOAT4(0.0f,1.0f,0.0f,1.0f)),
+	};
+	D3D12_VERTEX_BUFFER_VIEW* vbufferView = D3D12_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
+	D3D12_SHADER vertexShader = D3D12_SHADER(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
+	D3D12_CreateShaderByteCode(&vertexShader);
+
+	D3D12_SHADER pixelShader = D3D12_SHADER(L"Framework/Source/PixelShader.hlsl", SHADER_PIXEL, SHADER_VERSION_5_0);
+	D3D12_CreateShaderByteCode(&pixelShader);
+
+	D3D12_INPUT_ELEMENT_DESC inputLayout[2]
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	};
+
+	D3D12_SHADER* shaders[] = { &vertexShader, &pixelShader };
+
+	ID3D12PipelineState* pipelineState = D3D12_CreatePipelineState(nullptr, inputLayout, 2 ,shaders,2);
+
+#pragma endregion
+
+
+
     MSG msg = {};
     bool done = false;
     while (!done)
@@ -87,6 +126,11 @@ void Framework::Run()
 		else
 		{
 			D3D12_BeginRender();
+			D3D12_UsingPipeline(pipelineState, nullptr);
+			D3D12_UsingVertexBuffer(0, 1, vbufferView);
+			D3D12_DrawInstanced(3, 1, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
 			D3D12_EndRender();
 		}
     }

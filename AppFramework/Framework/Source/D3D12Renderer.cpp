@@ -235,10 +235,18 @@ void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-	commandList->SetGraphicsRootSignature(rootSignature);
+	if (rootSignature)
+		commandList->SetGraphicsRootSignature(rootSignature);
+	else
+		commandList->SetGraphicsRootSignature(defaultSignature);
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
+}
+
+void D3D12_UsingVertexBuffer(UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW* pViews)
+{
+	commandList->IASetVertexBuffers(StartSlot, NumViews, pViews);
 }
 
 void D3D12_DispatchCommandList()
@@ -260,35 +268,7 @@ void D3D12_WaitForPreviousFrame()
 
 	fenceValue[frameIndex]++;
 }
-bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader)
-{
-	HRESULT hr;
 
-	char shaderTypeVersion[8];
-	strcpy_s(shaderTypeVersion, 8, shader->shaderType);
-	strncat_s(shaderTypeVersion, 8, shader->shaderVersion, 3);
-
-	ID3DBlob* shaderBlob;
-	ID3DBlob* errorBlob;
-	hr = D3DCompileFromFile(
-		shader->fileName,
-		nullptr, nullptr,
-		"main", shaderTypeVersion,
-		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-		0, &shaderBlob, &errorBlob
-	);
-	if (FAILED(hr))
-	{
-		OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
-		assert(false);
-		return false;
-	}
-
-	shader->shaderByteCode.pShaderBytecode = shaderBlob->GetBufferPointer();
-	shader->shaderByteCode.BytecodeLength = shaderBlob->GetBufferSize();
-
-	return true;
-}
 ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters)
 {
 	ID3D12RootSignature* signature;
@@ -310,6 +290,82 @@ ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamte
 	
 	return signature;
 }
+
+bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader)
+{
+	HRESULT hr;
+
+	char shaderTypeVersion[8];
+	strcpy_s(shaderTypeVersion, 8, shader->shaderType);
+	strncat_s(shaderTypeVersion, 8, shader->shaderVersion, 3);
+
+	ID3DBlob* shaderBlob;
+	ID3DBlob* errorBlob;
+	hr = D3DCompileFromFile(
+		shader->fileName,
+		nullptr, nullptr,
+		"main", shaderTypeVersion,
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, &shaderBlob, &errorBlob
+	);
+	if (FAILED(hr))
+	{
+		OutputDebugStringA((char*)(errorBlob->GetBufferPointer()));
+		assert(false);
+		return false;
+	}
+
+	shader->shaderByteCode.pShaderBytecode = shaderBlob->GetBufferPointer();
+	shader->shaderByteCode.BytecodeLength = shaderBlob->GetBufferSize();
+
+	return true;
+}
+
+ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12_SHADER** arrayOfShaders, unsigned int numOfShaders)
+{
+	ID3D12PipelineState* pipelineState;
+
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+	inputLayoutDesc.NumElements = numOfElements;
+	inputLayoutDesc.pInputElementDescs = inputLayout;
+
+	DXGI_SAMPLE_DESC sampleDesc = {};
+	sampleDesc.Count = 1; //multisample count, 1 = 1 sample
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
+	psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
+	psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
+	psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
+	psoDesc.NumRenderTargets = 1; // we are only binding one render target
+
+	if (rootSignature)
+		psoDesc.pRootSignature = rootSignature; // the root signature that describes the input data this pso needs
+	else
+		psoDesc.pRootSignature = defaultSignature;
+
+	for (int i = 0; i < numOfShaders; i++)
+	{
+		if (arrayOfShaders[i]->shaderType == SHADER_VERTEX)
+		{
+			psoDesc.VS = arrayOfShaders[i]->shaderByteCode; // structure describing where to find the vertex shader bytecode and how large it is
+			continue;									   
+		}		
+		if (arrayOfShaders[i]->shaderType == SHADER_PIXEL)
+		{
+			psoDesc.PS = arrayOfShaders[i]->shaderByteCode; // same as VS but for pixel shader
+			continue;
+		}
+	}
+
+    graphicsDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipelineState));
+
+	return pipelineState;
+}
+
 D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
 {
 	D3D12_UsingPipeline(nullptr, nullptr);
@@ -321,7 +377,6 @@ D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int 
 		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr, IID_PPV_ARGS(&vertexBuffer));
 	vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
-
 
 	ID3D12Resource* uploadBuffer;
 	graphicsDevice->CreateCommittedResource(
@@ -343,6 +398,13 @@ D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int 
 	vBufferView->StrideInBytes = sizeOfVertex;
 	vBufferView->SizeInBytes = vBufferSize;
 
+	D3D12_DispatchCommandList();
 
 	return vBufferView;
+}
+
+void D3D12_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology)
+{
+	commandList->IASetPrimitiveTopology(Topology);
+	commandList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
 }
