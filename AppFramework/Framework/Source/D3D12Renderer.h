@@ -6,6 +6,27 @@
 
 #include "d3dx12.h"
 
+#define SHADER_VERTEX "vs_"
+#define SHADER_PIXEL "ps_"
+#define SHADER_VERSION_5_0 "5_0"
+
+
+struct D3D12_SHADER
+{
+	LPCWSTR fileName;
+	LPCSTR shaderType;
+	LPCSTR shaderVersion;
+	D3D12_SHADER_BYTECODE shaderByteCode = {};
+
+	D3D12_SHADER() {}
+	D3D12_SHADER(LPCWSTR filename, LPCSTR shadertype, LPCSTR shaderversion)
+	{
+		fileName = filename;
+		shaderType = shadertype;
+		shaderVersion = shaderversion;
+	}
+};
+
 namespace D3D12Renderer
 {
 	extern const int frameBufferCount;
@@ -28,6 +49,8 @@ namespace D3D12Renderer
 
 	extern unsigned int frameIndex;														// The current buffer we are currently on
 	extern int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
+
+	extern ID3D12RootSignature* defaultSignature;
 }
 
 bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
@@ -37,3 +60,7 @@ void D3D12_EndRender();
 void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature);
 void D3D12_DispatchCommandList();
 void D3D12_WaitForPreviousFrame();
+
+bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader);
+ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters);
+D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);

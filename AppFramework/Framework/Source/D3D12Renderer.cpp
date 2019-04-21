@@ -1,3 +1,6 @@
+#include <string.h>
+#include <assert.h>
+
 #include "D3D12Renderer.h"
 
 namespace D3D12Renderer
@@ -22,6 +25,8 @@ namespace D3D12Renderer
 
 	unsigned int frameIndex;														// The current buffer we are currently on
 	int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
+
+	ID3D12RootSignature* defaultSignature;
 }
 
 using namespace D3D12Renderer;
@@ -170,6 +175,11 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 
 #pragma endregion
+#pragma region Default Root Siganture Creation
+
+	defaultSignature = D3D12_CreateRootSignature(nullptr);
+
+#pragma endregion
 #pragma region Default Viewport & ScissorRect Creation
 
 	viewport.TopLeftX = 0.f;
@@ -249,4 +259,90 @@ void D3D12_WaitForPreviousFrame()
 	}
 
 	fenceValue[frameIndex]++;
+}
+bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader)
+{
+	HRESULT hr;
+
+	char shaderTypeVersion[8];
+	strcpy_s(shaderTypeVersion, 8, shader->shaderType);
+	strncat_s(shaderTypeVersion, 8, shader->shaderVersion, 3);
+
+	ID3DBlob* shaderBlob;
+	ID3DBlob* errorBlob;
+	hr = D3DCompileFromFile(
+		shader->fileName,
+		nullptr, nullptr,
+		"main", shaderTypeVersion,
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0, &shaderBlob, &errorBlob
+	);
+	if (FAILED(hr))
+	{
+		OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
+		assert(false);
+		return false;
+	}
+
+	shader->shaderByteCode.pShaderBytecode = shaderBlob->GetBufferPointer();
+	shader->shaderByteCode.BytecodeLength = shaderBlob->GetBufferSize();
+
+	return true;
+}
+ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters)
+{
+	ID3D12RootSignature* signature;
+
+	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+	if (rootParamters)
+		rootSignatureDesc.NumParameters = sizeof(*rootParamters) / sizeof(D3D12_ROOT_PARAMETER);
+	else
+		rootSignatureDesc.NumParameters = 0;
+	rootSignatureDesc.pParameters = rootParamters;
+	rootSignatureDesc.NumStaticSamplers = 0;
+	rootSignatureDesc.pStaticSamplers = nullptr;
+	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+	ID3DBlob* blob;
+	D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, nullptr);
+
+	graphicsDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&signature));
+	
+	return signature;
+}
+D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
+{
+	D3D12_UsingPipeline(nullptr, nullptr);
+	int vBufferSize = sizeOfVertex * vertexCount;
+
+	ID3D12Resource* vertexBuffer;
+	graphicsDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr, IID_PPV_ARGS(&vertexBuffer));
+	vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
+
+
+	ID3D12Resource* uploadBuffer;
+	graphicsDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr, IID_PPV_ARGS(&uploadBuffer));
+
+	D3D12_SUBRESOURCE_DATA vertexData = {};
+	vertexData.pData = reinterpret_cast<BYTE*>(vertices);
+	vertexData.RowPitch = vBufferSize;
+	vertexData.SlicePitch = vBufferSize;
+
+	UpdateSubresources(commandList, vertexBuffer, uploadBuffer, 0, 0, 1, &vertexData);
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+	D3D12_VERTEX_BUFFER_VIEW* vBufferView = new D3D12_VERTEX_BUFFER_VIEW;
+
+	vBufferView->BufferLocation = vertexBuffer->GetGPUVirtualAddress();
+	vBufferView->StrideInBytes = sizeOfVertex;
+	vBufferView->SizeInBytes = vBufferSize;
+
+
+	return vBufferView;
 }
