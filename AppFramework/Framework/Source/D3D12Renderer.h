@@ -57,18 +57,34 @@ namespace D3D12Renderer
 bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
 void D3D12_Shutdown();
 
-void D3D12_BeginRender();
-void D3D12_EndRender();
+#pragma region Rendering Functions
 
+void D3D12_BeginRender();
+
+//Must use to render objects
 void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature);
 void D3D12_UsingVertexBuffer(UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW* pViews);
+void D3D12_UsingIndexBuffer(const D3D12_INDEX_BUFFER_VIEW* pView);
+void D3D12_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology);
+void D3D12_DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology);
+
+//Optional use
+void D3D12_SetViewport(float width, float height);
+
+void D3D12_EndRender();
+
+#pragma endregion
 
 void D3D12_DispatchCommandList();
 void D3D12_WaitForPreviousFrame();
 
-ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters);
+#pragma region DirextX Object Creation
+
+ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters);
 bool D3D12_CreateShaderByteCode(D3D12_SHADER* shader);
 ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12_SHADER** arrayOfShaders, unsigned int numOfShaders);
 D3D12_VERTEX_BUFFER_VIEW* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
+D3D12_INDEX_BUFFER_VIEW* D3D12_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
 
-void D3D12_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology);
+#pragma endregion
+
