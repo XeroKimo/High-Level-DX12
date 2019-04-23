@@ -116,6 +116,12 @@ void Framework::Run()
 	ID3D12PipelineState* pipelineState = D3D12_CreatePipelineState(nullptr, inputLayout, 2 ,shaders,2);
 
 	D3D12_DispatchCommandList();
+
+    D3D12RootSignatureParameters test = D3D12RootSignatureParameters(1);
+    D3D12_DESCRIPTOR_RANGE_TYPE type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+    int descriptors = 1;
+    int tables = 1;
+    //test.CreateRootDescriptorTables(&type, &descriptors, tables);
 #pragma endregion
 
     MSG msg = {};

@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <Windows.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
@@ -33,7 +34,7 @@ struct D3D12ResourceWrapper
 	{
 		ResourceViewType_VertexBuffer = 0x01,
 		ResourceViewType_IndexBuffer = 0x02,
-		ResourceViewType_DescriptorBuffer = 0x04,
+		ResourceViewType_DescriptorBuffer = 0x03,
 	};
 	union ResourceView
 	{
@@ -75,17 +76,18 @@ public:
 			view.descriptorBuffer->Release();
 	}
 };
+
 class D3D12RootSignatureParameters
 {
-	union SignatureType
-	{
-		D3D12_ROOT_CONSTANTS constant;
-		D3D12_ROOT_DESCRIPTOR descriptor;
-		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
-	};
-public:
 
-	void CreateRootConstant(int Num32BitValues)
+public:
+    D3D12RootSignatureParameters(int NumParameters)
+    {
+        parameterCount = static_cast<char>(NumParameters);
+        rootParameters.reset(new D3D12_ROOT_PARAMETER[NumParameters]);
+    }
+
+	void CreateRootConstant(int Num32BitValues, D3D12_SHADER_VISIBILITY shaderVisibility)
 	{
 		if (freeSpace == 0)
 			return;
@@ -96,12 +98,14 @@ public:
 		constant.ShaderRegister = constantBufferCount;
 		constantBufferCount++;
 
-		parameters[parameterCount].constant = constant;
-		parameterCount++;
+        rootParameters.get()[filledParameters].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        rootParameters.get()[filledParameters].Constants = constant;
+        rootParameters.get()[filledParameters].ShaderVisibility = shaderVisibility;
+        filledParameters++;
 		freeSpace -= Num32BitValues;
 	}
 
-	void CreateRootDescriptors(D3D12_DESCRIPTOR_RANGE_TYPE RangeType, int DescriptorAmount)
+	void CreateRootDescriptors(D3D12_ROOT_PARAMETER_TYPE* ParameterType, int DescriptorAmount, D3D12_SHADER_VISIBILITY* shaderVisibility)
 	{
 		for (int i = 0; i < DescriptorAmount; i++)
 		{
@@ -111,87 +115,95 @@ public:
 			D3D12_ROOT_DESCRIPTOR descriptor;
 			descriptor.RegisterSpace = 0;
 
-			if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+			if (ParameterType[i] == D3D12_ROOT_PARAMETER_TYPE_CBV)
 			{
 				descriptor.ShaderRegister = constantBufferCount;
 				constantBufferCount++;
 			}			
-			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+			else if (ParameterType[i] == D3D12_ROOT_PARAMETER_TYPE_UAV)
 			{
 				descriptor.ShaderRegister = unorderedAccessCount;
 				unorderedAccessCount++;
 			}
-			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+			else if (ParameterType[i] == D3D12_ROOT_PARAMETER_TYPE_SRV)
 			{
 				descriptor.ShaderRegister = shaderResourceCount;
 				shaderResourceCount++;
 			}
-			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
-			{
-				descriptor.ShaderRegister = samplerCount;
-				samplerCount++;
-			}
 
-			parameters[parameterCount].descriptor = descriptor;
-			parameterCount++;
+            rootParameters.get()[filledParameters].ParameterType = ParameterType[i];
+            rootParameters.get()[filledParameters].Descriptor = descriptor;
+            rootParameters.get()[filledParameters].ShaderVisibility = shaderVisibility[i];
+
+			filledParameters++;
 			freeSpace -= 2;
 
 		}
 	}
 
-	void CreateRootDescriptorTables(D3D12_DESCRIPTOR_RANGE_TYPE* RangeType, int* NumDescriptors, int numTables)
+	void CreateRootDescriptorTables(D3D12_DESCRIPTOR_RANGE_TYPE* RangeType, int* NumDescriptorsInTable, int NumTables, D3D12_SHADER_VISIBILITY* shaderVisibility)
 	{
 		int i = 0;
-		D3D12_DESCRIPTOR_RANGE* descriptorRange = new D3D12_DESCRIPTOR_RANGE [numTables];
-		for ( ; i < numTables; i++)
+        std::unique_ptr<D3D12_DESCRIPTOR_RANGE> descriptorRange(new D3D12_DESCRIPTOR_RANGE[NumTables]);
+		for ( ; i < NumTables; i++)
 		{
-			if (freeSpace == 0)
-				break;
+            if (freeSpace == 0)
+                break;
 
-			descriptorRange[i].RangeType = RangeType[i];
-			descriptorRange[i].NumDescriptors = NumDescriptors[i];
-			descriptorRange[i].RegisterSpace = 0;
-			descriptorRange[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            descriptorRange.get()[i].RangeType = RangeType[i];
+            descriptorRange.get()[i].NumDescriptors = NumDescriptorsInTable[i];
+            descriptorRange.get()[i].RegisterSpace = 0;
+            descriptorRange.get()[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 			if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
 			{
-				descriptorRange[i].BaseShaderRegister = constantBufferCount;
-				constantBufferCount += NumDescriptors[i];
+                descriptorRange.get()[i].BaseShaderRegister = constantBufferCount;
+				constantBufferCount += NumDescriptorsInTable[i];
 			}
 			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
 			{
-				descriptorRange[i].BaseShaderRegister = unorderedAccessCount;
-				unorderedAccessCount += NumDescriptors[i];
+                descriptorRange.get()[i].BaseShaderRegister = unorderedAccessCount;
+				unorderedAccessCount += NumDescriptorsInTable[i];
 			}
 			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
 			{
-				descriptorRange[i].BaseShaderRegister = shaderResourceCount;
-				shaderResourceCount += NumDescriptors[i];
+                descriptorRange.get()[i].BaseShaderRegister = shaderResourceCount;
+				shaderResourceCount += NumDescriptorsInTable[i];
 			}
 			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
 			{
-				descriptorRange[i].BaseShaderRegister = samplerCount;
-				samplerCount += NumDescriptors[i];
+                descriptorRange.get()[i].BaseShaderRegister = samplerCount;
+				samplerCount += NumDescriptorsInTable[i];
 			}
 
 		}
 
 		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
 		descriptorTable.NumDescriptorRanges = i;
-		descriptorTable.pDescriptorRanges = &descriptorRange[0];
+		descriptorTable.pDescriptorRanges = &descriptorRange.get()[0];
 
+        rootParameters.get()[filledParameters].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        rootParameters.get()[filledParameters].DescriptorTable = descriptorTable;
+        rootParameters.get()[filledParameters].ShaderVisibility = shaderVisibility[i];
 		parameterCount++;
 	}
+
+    char GetParameterCount() { return parameterCount; }
+
+    //std::unique_ptr<D3D12_ROOT_PARAMETER> GetRootParameters()
+    //{
+    //    return rootParameters;
+    //}
 
 private:
 	char freeSpace = 64;
 	char parameterCount = 0;
+    char filledParameters = 0;
 	unsigned long constantBufferCount = 0;
 	unsigned long shaderResourceCount = 0;
 	unsigned long unorderedAccessCount = 0;
 	unsigned long samplerCount = 0;
-	D3D12_ROOT_PARAMETER rootParameters;
-	SignatureType parameters[64];
+	std::unique_ptr<D3D12_ROOT_PARAMETER> rootParameters;
 };
 namespace D3D12Renderer
 {
