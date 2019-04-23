@@ -90,19 +90,19 @@ void Framework::Run()
 		VertexDesc(XMFLOAT3(0.5f,-0.5f,0.5f)   , XMFLOAT4(0.0f,0.0f,1.0f,1.0f)),
 		VertexDesc(XMFLOAT3(-0.5f, -0.5f ,0.5f), XMFLOAT4(0.0f,1.0f,0.0f,1.0f)),
 	};
-	D3D12_VERTEX_BUFFER_VIEW* vbufferView = D3D12_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
+	D3D12ResourceWrapper* vbufferView = D3D12_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
 
 	DWORD indices[3] =
 	{
 		0,1,2
 	};
-	D3D12_INDEX_BUFFER_VIEW* iBufferView = D3D12_CreateIndexBuffer(indices, 3);
+	D3D12ResourceWrapper* iBufferView = D3D12_CreateIndexBuffer(indices, 3);
 
-	D3D12_SHADER vertexShader = D3D12_SHADER(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
+	D3D12ShaderWrapper vertexShader = D3D12ShaderWrapper(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
 	D3D12_CreateShaderByteCode(&vertexShader);
 
 
-	D3D12_SHADER pixelShader = D3D12_SHADER(L"Framework/Source/PixelShader.hlsl", SHADER_PIXEL, SHADER_VERSION_5_0);
+	D3D12ShaderWrapper pixelShader = D3D12ShaderWrapper(L"Framework/Source/PixelShader.hlsl", SHADER_PIXEL, SHADER_VERSION_5_0);
 	D3D12_CreateShaderByteCode(&pixelShader);
 
 	D3D12_INPUT_ELEMENT_DESC inputLayout[2]
@@ -111,7 +111,7 @@ void Framework::Run()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
-	D3D12_SHADER* shaders[] = { &vertexShader, &pixelShader };
+	D3D12ShaderWrapper* shaders[] = { &vertexShader, &pixelShader };
 
 	ID3D12PipelineState* pipelineState = D3D12_CreatePipelineState(nullptr, inputLayout, 2 ,shaders,2);
 
@@ -138,8 +138,8 @@ void Framework::Run()
 #pragma region D3D12 Render Testing
 
 			D3D12_UsingPipeline(pipelineState, nullptr);
-			D3D12_UsingVertexBuffer(0, 1, vbufferView);
-			D3D12_UsingIndexBuffer(iBufferView);
+			D3D12_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
+			D3D12_UsingIndexBuffer(iBufferView->view.indexBuffer);
 			D3D12_DrawIndexedInstanced(3, 1, 0, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 #pragma endregion
