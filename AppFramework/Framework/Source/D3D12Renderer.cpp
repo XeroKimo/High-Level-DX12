@@ -114,8 +114,7 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Render-Targets View & Render Targets Creation 
 
-	renderTargetResource = new D3D12ResourceWrapper();
-	renderTargetResource->viewType = D3D12ResourceWrapper::ResourceViewType_DescriptorBuffer;
+	renderTargetResource = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_DescriptorBuffer);
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.NumDescriptors = frameBufferCount;
@@ -442,8 +441,7 @@ ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignatur
 
 D3D12ResourceWrapper* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
 {
-	D3D12ResourceWrapper* vertexBuffer = new D3D12ResourceWrapper();
-	vertexBuffer->viewType = D3D12ResourceWrapper::ResourceViewType_VertexBuffer;
+	D3D12ResourceWrapper* vertexBuffer = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_VertexBuffer);
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
@@ -478,8 +476,7 @@ D3D12ResourceWrapper* D3D12_CreateVertexBuffer(void* vertices, unsigned int vert
 
 D3D12ResourceWrapper* D3D12_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
 {
-	D3D12ResourceWrapper* indexBuffer = new D3D12ResourceWrapper();
-	indexBuffer->viewType = D3D12ResourceWrapper::ResourceViewType_IndexBuffer;
+	D3D12ResourceWrapper* indexBuffer = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_IndexBuffer);
 
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 

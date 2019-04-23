@@ -46,8 +46,15 @@ struct D3D12ResourceWrapper
 	ID3D12Resource** pResourceArray;
 	unsigned int resourceArrayCount;
 	ResourceView view;
+
+private:
 	ResourceViewType viewType;
 
+public:
+	D3D12ResourceWrapper(ResourceViewType type)
+	{
+		viewType = type;
+	}
 	~D3D12ResourceWrapper()
 	{
 		if (pResource)
@@ -64,10 +71,125 @@ struct D3D12ResourceWrapper
 		if (viewType == ResourceViewType_DescriptorBuffer)
 			view.descriptorBuffer->Release();
 	}
-
-	
 };
+class D3D12RootSignatureParameters
+{
+	union SignatureType
+	{
+		D3D12_ROOT_CONSTANTS constant;
+		D3D12_ROOT_DESCRIPTOR descriptor;
+		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+	};
+public:
 
+	void CreateRootConstant(int Num32BitValues)
+	{
+		if (freeSpace == 0)
+			return;
+
+		D3D12_ROOT_CONSTANTS constant;
+		constant.Num32BitValues = Num32BitValues;
+		constant.RegisterSpace = 0;
+		constant.ShaderRegister = constantBufferCount;
+		constantBufferCount++;
+
+		parameters[parameterCount].constant = constant;
+		parameterCount++;
+		freeSpace -= Num32BitValues;
+	}
+
+	void CreateRootDescriptors(D3D12_DESCRIPTOR_RANGE_TYPE RangeType, int DescriptorAmount)
+	{
+		for (int i = 0; i < DescriptorAmount; i++)
+		{
+			if (freeSpace < 2)
+				return;
+
+			D3D12_ROOT_DESCRIPTOR descriptor;
+			descriptor.RegisterSpace = 0;
+
+			if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+			{
+				descriptor.ShaderRegister = constantBufferCount;
+				constantBufferCount++;
+			}			
+			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+			{
+				descriptor.ShaderRegister = unorderedAccessCount;
+				unorderedAccessCount++;
+			}
+			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+			{
+				descriptor.ShaderRegister = shaderResourceCount;
+				shaderResourceCount++;
+			}
+			else if (RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+			{
+				descriptor.ShaderRegister = samplerCount;
+				samplerCount++;
+			}
+
+			parameters[parameterCount].descriptor = descriptor;
+			parameterCount++;
+			freeSpace -= 2;
+
+		}
+	}
+
+	void CreateRootDescriptorTables(D3D12_DESCRIPTOR_RANGE_TYPE* RangeType, int* NumDescriptors, int numTables)
+	{
+		int i = 0;
+		D3D12_DESCRIPTOR_RANGE* descriptorRange = new D3D12_DESCRIPTOR_RANGE [numTables];
+		for ( ; i < numTables; i++)
+		{
+			if (freeSpace == 0)
+				break;
+
+			descriptorRange[i].RangeType = RangeType[i];
+			descriptorRange[i].NumDescriptors = NumDescriptors[i];
+			descriptorRange[i].RegisterSpace = 0;
+			descriptorRange[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+			{
+				descriptorRange[i].BaseShaderRegister = constantBufferCount;
+				constantBufferCount += NumDescriptors[i];
+			}
+			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+			{
+				descriptorRange[i].BaseShaderRegister = unorderedAccessCount;
+				unorderedAccessCount += NumDescriptors[i];
+			}
+			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+			{
+				descriptorRange[i].BaseShaderRegister = shaderResourceCount;
+				shaderResourceCount += NumDescriptors[i];
+			}
+			else if (RangeType[i] == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+			{
+				descriptorRange[i].BaseShaderRegister = samplerCount;
+				samplerCount += NumDescriptors[i];
+			}
+
+		}
+
+		D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+		descriptorTable.NumDescriptorRanges = i;
+		descriptorTable.pDescriptorRanges = &descriptorRange[0];
+
+		parameterCount++;
+	}
+
+private:
+	char freeSpace = 64;
+	char parameterCount = 0;
+	unsigned long constantBufferCount = 0;
+	unsigned long shaderResourceCount = 0;
+	unsigned long unorderedAccessCount = 0;
+	unsigned long samplerCount = 0;
+	D3D12_ROOT_PARAMETER rootParameters;
+	SignatureType parameters[64];
+};
 namespace D3D12Renderer
 {
 	extern const int frameBufferCount;
