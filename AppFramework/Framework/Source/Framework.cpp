@@ -153,6 +153,7 @@ void Framework::Run()
 #pragma region D3D12 Render Testing Freeing memory
 
 	delete vbufferView;
+	delete iBufferView;
 
 	pipelineState->Release();
 

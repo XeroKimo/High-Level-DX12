@@ -42,9 +42,9 @@ struct D3D12ResourceWrapper
 		ID3D12DescriptorHeap* descriptorBuffer;
 	};
 
-	ID3D12Resource* pResource;
-	ID3D12Resource** pResourceArray;
-	unsigned int resourceArrayCount;
+	ID3D12Resource* pResource = nullptr;
+	ID3D12Resource** pResourceArray = nullptr;
+	unsigned int resourceArrayCount = 0;
 	ResourceView view;
 
 private:
