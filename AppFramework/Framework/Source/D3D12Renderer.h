@@ -62,7 +62,10 @@ public:
 		if (pResourceArray)
 		{
 			for (unsigned int i = 0; i < resourceArrayCount; i++)
+			{
 				pResourceArray[i]->Release();
+			}
+			delete[] pResourceArray;
 		}
 		if (viewType == ResourceViewType_VertexBuffer)
 			delete view.vertexBuffer;

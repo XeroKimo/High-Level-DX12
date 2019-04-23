@@ -132,6 +132,7 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(renderTargetResource->view.descriptorBuffer->GetCPUDescriptorHandleForHeapStart());
 	renderTargetResource->pResourceArray = new ID3D12Resource*[frameBufferCount];
+	renderTargetResource->resourceArrayCount = 2;
 	for (int i = 0; i < frameBufferCount; i++)
 	{
 		//Get a buffer in the swap chain
