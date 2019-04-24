@@ -11,7 +11,7 @@ namespace D3D12Renderer
 	ID3D12Device* graphicsDevice;												// The graphics device that will handle the rendering
 	ID3D12CommandQueue* commandQueue;											// Responsible for sending command lists to the device for execution
 	IDXGISwapChain3* swapChain;													// Swap chain used to switch between render targets
-	D3D12ResourceWrapper* renderTargetResource;
+	D3D12R_ResourceWrapper* renderTargetResource;
 	//ID3D12DescriptorHeap* rtvDescriptorHeap;									// Descriptor for the render-targets
 	//ID3D12Resource* renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
 	ID3D12CommandAllocator* commandAllocators[frameBufferCount * threadCount];	// Have enough command allocators for each buffer * threads
@@ -28,11 +28,13 @@ namespace D3D12Renderer
 	int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
 
 	ID3D12RootSignature* defaultSignature;
+
+
 }
 
 using namespace D3D12Renderer;
 
-bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
+bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 {
 	HRESULT hr;	// TODO: Delete all hr stuff when we know it works
 
@@ -114,7 +116,7 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Render-Targets View & Render Targets Creation 
 
-	renderTargetResource = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_DescriptorBuffer);
+	renderTargetResource = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_DescriptorBuffer);
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.NumDescriptors = frameBufferCount;
@@ -208,7 +210,7 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Default Root Signature Creation
 
-	defaultSignature = D3D12_CreateRootSignature(nullptr, 0);
+	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0);
 
 #pragma endregion
 #pragma region Default Viewport & ScissorRect Creation
@@ -232,9 +234,9 @@ bool D3D12_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	return true;
 }
 
-void D3D12_Shutdown()
+void D3D12R_Shutdown()
 {
-	D3D12_WaitForPreviousFrame();
+	D3D12R_WaitForPreviousFrame();
 
 	// get swapchain out of full screen before exiting
 	BOOL fs = false;
@@ -247,6 +249,7 @@ void D3D12_Shutdown()
 	delete renderTargetResource;
 	//rtvDescriptorHeap->Release();
 	commandList->Release();
+	defaultSignature->Release();
 
 	for (int i = 0; i < frameBufferCount; ++i)
 	{
@@ -256,9 +259,9 @@ void D3D12_Shutdown()
 	};
 }
 
-void D3D12_BeginRender()
+void D3D12R_BeginRender()
 {
-	D3D12_WaitForPreviousFrame();
+	D3D12R_WaitForPreviousFrame();
 
 	commandAllocators[frameIndex]->Reset();
 	commandList->Reset(commandAllocators[frameIndex], nullptr);
@@ -276,35 +279,35 @@ void D3D12_BeginRender()
 
 }
 
-void D3D12_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature)
+void D3D12R_UsingPipeline(ID3D12PipelineState* pipelineState, ID3D12RootSignature* rootSignature)
 {
 	commandList->SetPipelineState(pipelineState);
 	commandList->SetGraphicsRootSignature(rootSignature);
 }
 
-void D3D12_UsingVertexBuffer(UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW* pViews)
+void D3D12R_UsingVertexBuffer(UINT StartSlot, UINT NumViews, const D3D12_VERTEX_BUFFER_VIEW* pViews)
 {
 	commandList->IASetVertexBuffers(StartSlot, NumViews, pViews);
 }
 
-void D3D12_UsingIndexBuffer(const D3D12_INDEX_BUFFER_VIEW* pView)
+void D3D12R_UsingIndexBuffer(const D3D12_INDEX_BUFFER_VIEW* pView)
 {
 	commandList->IASetIndexBuffer(pView);
 }
 
-void D3D12_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology)
+void D3D12R_DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology)
 {
 	commandList->IASetPrimitiveTopology(Topology);
 	commandList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
 }
 
-void D3D12_DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology)
+void D3D12R_DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, UINT BaseVertexLocation, UINT StartInstanceLocation, D3D12_PRIMITIVE_TOPOLOGY Topology)
 {
 	commandList->IASetPrimitiveTopology(Topology);
 	commandList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
 }
 
-void D3D12_SetViewport(float width, float height)
+void D3D12R_SetViewport(float width, float height)
 {
 	viewport.Width = width;
 	viewport.Height = height;
@@ -316,24 +319,24 @@ void D3D12_SetViewport(float width, float height)
 	commandList->RSSetScissorRects(1, &scissorRect);
 }
 
-void D3D12_EndRender()
+void D3D12R_EndRender()
 {
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargetResource->pResourceArray[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-	D3D12_DispatchCommandList();
+	D3D12R_DispatchCommandList();
 	commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
 
 	swapChain->Present(0, 0);
 }
 
-void D3D12_DispatchCommandList()
+void D3D12R_DispatchCommandList()
 {
 	commandList->Close();
 	ID3D12CommandList* ppCommandList[] = { commandList };
 	commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 }
 
-void D3D12_WaitForPreviousFrame()
+void D3D12R_WaitForPreviousFrame()
 {
 	frameIndex = swapChain->GetCurrentBackBufferIndex();
 
@@ -346,7 +349,7 @@ void D3D12_WaitForPreviousFrame()
 	fenceValue[frameIndex]++;
 }
 
-ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters)
+ID3D12RootSignature* D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters)
 {
 	ID3D12RootSignature* signature;
 
@@ -365,7 +368,7 @@ ID3D12RootSignature* D3D12_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamte
 	return signature;
 }
 
-bool D3D12_CreateShaderByteCode(D3D12ShaderWrapper* shader)
+bool D3D12R_CreateShaderByteCode(D3D12RShaderWrapper* shader)
 {
 	HRESULT hr;
 
@@ -395,7 +398,7 @@ bool D3D12_CreateShaderByteCode(D3D12ShaderWrapper* shader)
 	return true;
 }
 
-ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12ShaderWrapper** arrayOfShaders, unsigned int numOfShaders)
+ID3D12PipelineState* D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12RShaderWrapper** arrayOfShaders, unsigned int numOfShaders)
 {
 	ID3D12PipelineState* pipelineState;
 
@@ -440,9 +443,9 @@ ID3D12PipelineState* D3D12_CreatePipelineState(ID3D12RootSignature* rootSignatur
 	return pipelineState;
 }
 
-D3D12ResourceWrapper* D3D12_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
+D3D12R_ResourceWrapper* D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
 {
-	D3D12ResourceWrapper* vertexBuffer = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_VertexBuffer);
+	D3D12R_ResourceWrapper* vertexBuffer = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_VertexBuffer);
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
@@ -475,9 +478,9 @@ D3D12ResourceWrapper* D3D12_CreateVertexBuffer(void* vertices, unsigned int vert
 	return vertexBuffer;
 }
 
-D3D12ResourceWrapper* D3D12_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
+D3D12R_ResourceWrapper* D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
 {
-	D3D12ResourceWrapper* indexBuffer = new D3D12ResourceWrapper(D3D12ResourceWrapper::ResourceViewType_IndexBuffer);
+	D3D12R_ResourceWrapper* indexBuffer = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_IndexBuffer);
 
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 
@@ -520,4 +523,3 @@ D3D12ResourceWrapper* D3D12_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
 
 	return indexBuffer;
 }
-

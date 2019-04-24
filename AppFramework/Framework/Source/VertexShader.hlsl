@@ -10,12 +10,18 @@ struct VS_OUTPUT
 	float4 color : COLOR;
 };
 
+
+cbuffer colorConstant :register (b0)
+{
+	float4 myColorConstant;
+};
+
 VS_OUTPUT main(VS_INPUT input)
 {
 	VS_OUTPUT output;
 	float4 pos = float4(input.pos, 1.0);
 	output.pos = pos;
-	output.color = input.color;
+	output.color = myColorConstant;
 
 	return output;
 }

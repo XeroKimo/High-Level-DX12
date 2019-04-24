@@ -8,7 +8,7 @@ Framework::Framework()
 
 Framework::~Framework()
 {
-	D3D12_Shutdown();
+	D3D12R_Shutdown();
 }
 
 bool Framework::Initialize(unsigned int width, unsigned int height)
@@ -16,7 +16,7 @@ bool Framework::Initialize(unsigned int width, unsigned int height)
 	if (!InitWindow(width, height))
 		return false;
 
-	if (!D3D12_Initialize(width, height, m_windowHandle))
+	if (!D3D12R_Initialize(width, height, m_windowHandle))
 		return false;
 
 	return true;
@@ -90,20 +90,20 @@ void Framework::Run()
 		VertexDesc(XMFLOAT3(0.5f,-0.5f,0.5f)   , XMFLOAT4(0.0f,0.0f,1.0f,1.0f)),
 		VertexDesc(XMFLOAT3(-0.5f, -0.5f ,0.5f), XMFLOAT4(0.0f,1.0f,0.0f,1.0f)),
 	};
-	D3D12ResourceWrapper* vbufferView = D3D12_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
+	D3D12R_ResourceWrapper* vbufferView = D3D12R_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
 
 	DWORD indices[3] =
 	{
 		0,1,2
 	};
-	D3D12ResourceWrapper* iBufferView = D3D12_CreateIndexBuffer(indices, 3);
+	D3D12R_ResourceWrapper* iBufferView = D3D12R_CreateIndexBuffer(indices, 3);
 
-	D3D12ShaderWrapper vertexShader = D3D12ShaderWrapper(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
-	D3D12_CreateShaderByteCode(&vertexShader);
+	D3D12RShaderWrapper vertexShader = D3D12RShaderWrapper(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
+	D3D12R_CreateShaderByteCode(&vertexShader);
 
 
-	D3D12ShaderWrapper pixelShader = D3D12ShaderWrapper(L"Framework/Source/PixelShader.hlsl", SHADER_PIXEL, SHADER_VERSION_5_0);
-	D3D12_CreateShaderByteCode(&pixelShader);
+	D3D12RShaderWrapper pixelShader = D3D12RShaderWrapper(L"Framework/Source/PixelShader.hlsl", SHADER_PIXEL, SHADER_VERSION_5_0);
+	D3D12R_CreateShaderByteCode(&pixelShader);
 
 	D3D12_INPUT_ELEMENT_DESC inputLayout[2]
 	{
@@ -111,18 +111,22 @@ void Framework::Run()
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
-	D3D12ShaderWrapper* shaders[] = { &vertexShader, &pixelShader };
+	D3D12RShaderWrapper* shaders[] = { &vertexShader, &pixelShader };
 
-	ID3D12PipelineState* pipelineState = D3D12_CreatePipelineState(nullptr, inputLayout, 2 ,shaders,2);
 
-	D3D12_DispatchCommandList();
+	D3D12R_SignatureParametersHelper test;
+	test.CreateRootConstant(4, D3D12_SHADER_VISIBILITY_ALL);
 
-    D3D12RootSignatureParameters test = D3D12RootSignatureParameters(1);
-    D3D12_DESCRIPTOR_RANGE_TYPE type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-    int descriptors = 1;
-    int tables = 1;
-    //test.CreateRootDescriptorTables(&type, &descriptors, tables);
+	D3D12R_RSP* params = test.MakeParameterInfo();
+	ID3D12RootSignature* testSignature = D3D12R_CreateRootSignature(test.GetRootParameters(), test.GetParameterCount());
+
+	ID3D12PipelineState* pipelineState = D3D12R_CreatePipelineState(testSignature, inputLayout, 2 ,shaders,2);
+
+	float color[4] = { 0.0f,1.0f,0.0f,0.0f };
+
+	D3D12R_DispatchCommandList();
 #pragma endregion
+
 
     MSG msg = {};
     bool done = false;
@@ -140,24 +144,27 @@ void Framework::Run()
         }
 		else
 		{
-			D3D12_BeginRender();
+			D3D12R_BeginRender();
 #pragma region D3D12 Render Testing
 
-			D3D12_UsingPipeline(pipelineState, nullptr);
-			D3D12_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
-			D3D12_UsingIndexBuffer(iBufferView->view.indexBuffer);
-			D3D12_DrawIndexedInstanced(3, 1, 0, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			D3D12R_UsingPipeline(pipelineState, testSignature);
+			D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params->parameterInfo[0].numberOfValues, &color[0], 0);
+
+			D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
+			D3D12R_UsingIndexBuffer(iBufferView->view.indexBuffer);
+			D3D12R_DrawIndexedInstanced(3, 1, 0, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 #pragma endregion
 
 
 
-			D3D12_EndRender();
+			D3D12R_EndRender();
 		}
     }
 
 #pragma region D3D12 Render Testing Freeing memory
 
+	delete params;
 	delete vbufferView;
 	delete iBufferView;
 
