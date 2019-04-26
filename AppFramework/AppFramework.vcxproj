@@ -150,7 +150,9 @@
     <ClCompile Include="Framework\Source\D3D12Renderer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Framework\Source\D3D12R_PipelineStateObject.cpp" />
+    <ClCompile Include="Framework\Source\D3D12R_PipelineStateObject.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Framework\Source\D3D12R_SignatureParametersHelper.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -160,9 +162,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Framework\Source\D3D12R.h" />
     <ClInclude Include="Framework\Source\D3D12Renderer.h" />
+    <ClInclude Include="Framework\Source\D3D12R_DescriptorHeapWrapper.h" />
     <ClInclude Include="Framework\Source\D3D12R_PipelineStateObject.h" />
-    <ClInclude Include="Framework\Source\D3D12R_RSP.h" />
+    <ClInclude Include="Framework\Source\D3D12R_RootSignatureWrapper.h" />
     <ClInclude Include="Framework\Source\D3D12R_SignatureParametersHelper.h" />
     <ClInclude Include="Framework\Source\d3dx12.h" />
     <ClInclude Include="Framework\Source\Framework.h" />

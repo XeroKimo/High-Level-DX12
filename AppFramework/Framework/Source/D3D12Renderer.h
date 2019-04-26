@@ -23,7 +23,14 @@ using std::unique_ptr;
 using std::make_shared;
 using std::make_unique;
 
-struct D3D12R_RSP;
+enum DescriptorBufferUse
+{
+    DescriptorBufferUse_Generic = 0x01,
+    DescriptorBufferUse_ConstantBuffer,
+    DescriptorBufferUse_MultiSample
+};
+struct D3D12R_RootSignatureWrapper;
+struct D3D12R_DescriptorHeapWrapper;
 class D3D12R_SignatureParametersHelper;
 
 struct D3D12R_ShaderWrapper
@@ -57,6 +64,7 @@ struct D3D12R_DrawResource
 	};
 
 	ComPtr<ID3D12Resource> pResource = nullptr;
+    ComPtr<ID3D12Resource> pUpload = nullptr;
 	ResourceView view;
 private:
 	ResourceType viewType;
@@ -79,18 +87,7 @@ public:
 	}
 };
 
-struct D3D12R_DescriptorHeapWrapper
-{
-    ComPtr<ID3D12DescriptorHeap> heap;
-    std::vector<ComPtr<ID3D12Resource>> descriptors;
 
-    ~D3D12R_DescriptorHeapWrapper()
-    {
-        heap->Release();
-        for (int i = 0; i < descriptors.size(); i++)
-            descriptors[i]->Release();
-    }
-};
 
 namespace D3D12Renderer
 {
@@ -118,7 +115,7 @@ namespace D3D12Renderer
 
 	extern ComPtr<ID3D12RootSignature> defaultSignature;
 
-	extern std::map<std::string, shared_ptr<D3D12R_RSP>> ownedRootSignatureParams;
+	extern std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
 	extern std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
@@ -153,6 +150,7 @@ bool D3D12R_CreateShaderByteCode(D3D12R_ShaderWrapper* shader);
 ComPtr<ID3D12PipelineState> D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12R_ShaderWrapper** arrayOfShaders, unsigned int numOfShaders);
 unique_ptr<D3D12R_DrawResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
 unique_ptr<D3D12R_DrawResource> D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
+ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON, LPCWSTR bufferName = nullptr);
 
 //void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes);
 

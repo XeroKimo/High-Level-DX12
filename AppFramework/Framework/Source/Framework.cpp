@@ -121,7 +121,7 @@ void Framework::Run()
 	//int numDesc = 1;
 	//int numRange = 1;
 	//test->CreateRootDescriptorTable(&type, &numDesc, numRange, D3D12_SHADER_VISIBILITY_ALL);
-	weak_ptr<D3D12R_RSP> params = test->MakeParameterInfo("params");
+	weak_ptr<D3D12R_RootSignatureWrapper> params = test->GenerateRootSignature("params");
 	ComPtr<ID3D12RootSignature> testSignature = D3D12R_CreateRootSignature(test->GetRootParameters(), test->GetParameterCount(), "testSignature");
 
 

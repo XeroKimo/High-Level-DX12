@@ -1,10 +1,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "D3D12Renderer.h"
-#include "D3D12R_SignatureParametersHelper.h"
-#include "D3D12R_RSP.h"
-
+#include "D3D12R.h"
 namespace D3D12Renderer
 {
 	extern const int frameBufferCount = 2;
@@ -31,7 +28,7 @@ namespace D3D12Renderer
 
 	ComPtr<ID3D12RootSignature> defaultSignature;
 
-	std::map<std::string, shared_ptr<D3D12R_RSP>> ownedRootSignatureParams;
+	std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
 	std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
@@ -135,6 +132,12 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma region Render-Targets / Render Buffers Creation
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptor->heap->GetCPUDescriptorHandleForHeapStart());
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+    rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+    rtvDesc.Texture2D.PlaneSlice = 0;
+
     rtvDescriptor->descriptors.resize(2);
     for (int i = 0; i < frameBufferCount; i++)
     {
@@ -143,7 +146,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
         if (FAILED(hr))
             return false;
         //Create a render-target in the rtvDescriptorHeap
-        graphicsDevice->CreateRenderTargetView(rtvDescriptor->descriptors[i].Get(), nullptr, rtvHandle);
+        graphicsDevice->CreateRenderTargetView(rtvDescriptor->descriptors[i].Get(), &rtvDesc, rtvHandle);
         //Offset the value to store the next render-target
         rtvHandle.Offset(1, rtvDescriptorSize);
     }
@@ -421,7 +424,7 @@ ComPtr<ID3D12PipelineState>  D3D12R_CreatePipelineState(ID3D12RootSignature* roo
 	psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
 	psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blend state.
 	psoDesc.NumRenderTargets = 1; // we are only binding one render target
 
 	if (rootSignature)
@@ -454,24 +457,27 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsig
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr, IID_PPV_ARGS(&vertexBuffer.get()->pResource));
-	vertexBuffer->pResource->SetName(L"Vertex Buffer Resource Heap");
+    vertexBuffer->pResource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_Generic, vBufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"Vertex Buffer Resource Heap");
+    vertexBuffer->pUpload = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_UPLOAD, DescriptorBufferUse_Generic, vBufferSize, D3D12_RESOURCE_STATE_GENERIC_READ, L"Vertex Buffer Resource Upload Heap");
 
-	ID3D12Resource* uploadBuffer;
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr, IID_PPV_ARGS(&uploadBuffer));
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+	//	&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
+	//	nullptr, IID_PPV_ARGS(&vertexBuffer.get()->pResource));
+	//vertexBuffer->pResource->SetName(L"Vertex Buffer Resource Heap");
+
+	//ID3D12Resource* uploadBuffer;
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+	//	&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ,
+	//	nullptr, IID_PPV_ARGS(&uploadBuffer));
 
 	D3D12_SUBRESOURCE_DATA vertexData = {};
 	vertexData.pData = reinterpret_cast<BYTE*>(vertices);
 	vertexData.RowPitch = vBufferSize;
 	vertexData.SlicePitch = vBufferSize;
 
-	UpdateSubresources(commandList.Get(), vertexBuffer.get()->pResource.Get(), uploadBuffer, 0, 0, 1, &vertexData);
+	UpdateSubresources(commandList.Get(), vertexBuffer->pResource.Get(), vertexBuffer->pUpload.Get(), 0, 0, 1, &vertexData);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
 	vertexBuffer->view.vertexBuffer = new D3D12_VERTEX_BUFFER_VIEW;
@@ -480,7 +486,6 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsig
 	vertexBuffer->view.vertexBuffer->StrideInBytes = sizeOfVertex;
 	vertexBuffer->view.vertexBuffer->SizeInBytes = vBufferSize;
 
-	//uploadBuffer->Release();
 
 	return vertexBuffer;
 }
@@ -490,34 +495,36 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD 
 	std::unique_ptr <D3D12R_DrawResource> indexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_IndexBuffer);
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-		nullptr, // optimized clear value must be null for this type of resource
-		IID_PPV_ARGS(&indexBuffer.get()->pResource));
-
-	// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-	indexBuffer->pResource->SetName(L"Index Buffer Resource Heap");
+    indexBuffer->pResource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_Generic, bufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"Index Buffer Resource Heap");
+    indexBuffer->pUpload = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_UPLOAD, DescriptorBufferUse_Generic, bufferSize, D3D12_RESOURCE_STATE_GENERIC_READ, L"Index Buffer Resource Upload Heap");
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
+	//	D3D12_HEAP_FLAG_NONE, // no flags
+	//	&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
+	//	D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
+	//	nullptr, // optimized clear value must be null for this type of resource
+	//	IID_PPV_ARGS(&indexBuffer.get()->pResource));
+	//// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
+	//indexBuffer->pResource->SetName(L"Index Buffer Resource Heap");
+    
 
 	// create upload heap to upload index buffer
-	ID3D12Resource* iBufferUploadHeap;
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-		nullptr,
-		IID_PPV_ARGS(&iBufferUploadHeap));
-	iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
+	//ID3D12Resource* iBufferUploadHeap;
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
+	//	D3D12_HEAP_FLAG_NONE, // no flags
+	//	&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
+	//	D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+	//	nullptr,
+	//	IID_PPV_ARGS(&iBufferUploadHeap));
+	//iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
 
 	D3D12_SUBRESOURCE_DATA indexData = {};
 	indexData.pData = reinterpret_cast<BYTE*>(indices); // pointer to our index array
 	indexData.RowPitch = bufferSize; // size of all our index buffer
 	indexData.SlicePitch = bufferSize; // also the size of our index buffer
 
-	UpdateSubresources(commandList.Get(), indexBuffer.get()->pResource.Get(), iBufferUploadHeap, 0, 0, 1, &indexData);
+	UpdateSubresources(commandList.Get(), indexBuffer->pResource.Get(), indexBuffer->pUpload.Get(), 0, 0, 1, &indexData);
 
 	// transition the vertex buffer data from copy destination state to vertex buffer state
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
@@ -527,9 +534,26 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD 
 	indexBuffer->view.indexBuffer->Format = DXGI_FORMAT_R32_UINT;
 	indexBuffer->view.indexBuffer->SizeInBytes = bufferSize;
 
-	//iBufferUploadHeap->Release();
-
 	return indexBuffer;
+}
+ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState, LPCWSTR bufferName)
+{
+    unsigned int bSize = bufferSize;
+    if (bufferUse == DescriptorBufferUse_ConstantBuffer)
+        bSize = (bSize + (1024 * 64)) & ~(1024 * 64);
+    else if (bufferUse == DescriptorBufferUse_MultiSample)
+        bSize = (bSize + (1024 * 1024 * 4)) & ~(1024 * 1024 * 4);
+
+    ComPtr<ID3D12Resource> resource;
+    graphicsDevice->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(heapType), D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(bSize), initialState,
+        nullptr, IID_PPV_ARGS(&resource)
+    );
+    if (bufferName)
+        resource->SetName(bufferName);
+
+    return resource;
 }
 //
 //void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes)

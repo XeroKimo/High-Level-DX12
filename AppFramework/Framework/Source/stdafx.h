@@ -4,10 +4,13 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+
 #include <Windows.h>
-#include "D3D12Renderer.h"
-#include "D3D12R_SignatureParametersHelper.h"
-#include "D3D12R_RSP.h"
+
+#include "D3D12R.h"
 
 #include <string.h>
 #include <memory>
