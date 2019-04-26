@@ -2,21 +2,22 @@
 #include <assert.h>
 
 #include "D3D12Renderer.h"
+#include "D3D12R_SignatureParametersHelper.h"
+#include "D3D12R_RSP.h"
 
 namespace D3D12Renderer
 {
 	extern const int frameBufferCount = 2;
 	extern const int threadCount = 1;
 
-	ID3D12Device* graphicsDevice;												// The graphics device that will handle the rendering
-	ID3D12CommandQueue* commandQueue;											// Responsible for sending command lists to the device for execution
-	IDXGISwapChain3* swapChain;													// Swap chain used to switch between render targets
-	D3D12R_ResourceWrapper* renderTargetResource;
-	//ID3D12DescriptorHeap* rtvDescriptorHeap;									// Descriptor for the render-targets
-	//ID3D12Resource* renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
-	ID3D12CommandAllocator* commandAllocators[frameBufferCount * threadCount];	// Have enough command allocators for each buffer * threads
-	ID3D12GraphicsCommandList* commandList;										// Records commands for the device to execute
-	ID3D12Fence* fence[frameBufferCount * threadCount];							// Utilized for syncing the GPU and CPU
+	ComPtr<ID3D12Device> graphicsDevice;												// The graphics device that will handle the rendering
+	ComPtr<ID3D12CommandQueue> commandQueue;											// Responsible for sending command lists to the device for execution
+	ComPtr<IDXGISwapChain3> swapChain;													// Swap chain used to switch between render targets
+	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;									// Descriptor for the render-targets
+	ComPtr<ID3D12Resource> renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
+	ComPtr<ID3D12CommandAllocator> commandAllocators[frameBufferCount * threadCount];	// Have enough command allocators for each buffer * threads
+	ComPtr<ID3D12GraphicsCommandList> commandList;										// Records commands for the device to execute
+	ComPtr<ID3D12Fence>fence [frameBufferCount * threadCount];							// Utilized for syncing the GPU and CPU
 
 	HANDLE fenceEvent;															// A Handle to our fence, to know when the gpu is unlocked
 	UINT64 fenceValue[frameBufferCount * threadCount];							// This value is incremented each frame. Each fence has its own value
@@ -27,9 +28,10 @@ namespace D3D12Renderer
 	unsigned int frameIndex;													// The current buffer we are currently on
 	int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
 
-	ID3D12RootSignature* defaultSignature;
+	ComPtr<ID3D12RootSignature> defaultSignature;
 
-
+	std::map<std::string, shared_ptr<D3D12R_RSP>> ownedRootSignatureParams;
+	std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
 using namespace D3D12Renderer;
@@ -102,7 +104,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	IDXGISwapChain1* tempSwapChain = nullptr;
 
 	dxgiFactory->CreateSwapChainForHwnd(
-		commandQueue,
+		commandQueue.Get(),
 		windowHandle,
 		&swapChainDesc,
 		NULL,
@@ -115,16 +117,13 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 #pragma endregion
 #pragma region Render-Targets View & Render Targets Creation 
-
-	renderTargetResource = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_DescriptorBuffer);
-
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
 	rtvHeapDesc.NumDescriptors = frameBufferCount;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
 
-	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&renderTargetResource->view.descriptorBuffer));
+	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
 	if (FAILED(hr))
 		return false;
 
@@ -132,50 +131,20 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 #pragma region Render-Targets / Render Buffers Creation
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(renderTargetResource->view.descriptorBuffer->GetCPUDescriptorHandleForHeapStart());
-	renderTargetResource->pResourceArray = new ID3D12Resource*[frameBufferCount];
-	renderTargetResource->resourceArrayCount = 2;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
 	for (int i = 0; i < frameBufferCount; i++)
 	{
 		//Get a buffer in the swap chain
-		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargetResource->pResourceArray[i]));
+		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
 		if (FAILED(hr))
 			return false;
 		//Create a render-target in the rtvDescriptorHeap
-		graphicsDevice->CreateRenderTargetView(renderTargetResource->pResourceArray[i], nullptr, rtvHandle);
+		graphicsDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
 		//Offset the value to store the next render-target
 		rtvHandle.Offset(1, rtvDescriptorSize);
 	}
 
-///old code
-//	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-//	rtvHeapDesc.NumDescriptors = frameBufferCount;
-//	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-//	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-//	rtvHeapDesc.NodeMask = 0;
-//
-//	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
-//	if (FAILED(hr))
-//		return false;
-//
-//	rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-//
-//#pragma region Render-Targets / Render Buffers Creation
-//
-//	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-//
-//	for (int i = 0; i < frameBufferCount; i++)
-//	{
-//		//Get a buffer in the swap chain
-//		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-//		if (FAILED(hr))
-//			return false;
-//		//Create a render-target in the rtvDescriptorHeap
-//		graphicsDevice->CreateRenderTargetView(renderTargets[i], nullptr, rtvHandle);
-//		//Offset the value to store the next render-target
-//		rtvHandle.Offset(1, rtvDescriptorSize);
-//	}
-//
 #pragma endregion
 #pragma endregion
 #pragma region Command Allocators & Command List Creation
@@ -187,7 +156,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 			return false;
 	}
 
-	hr = graphicsDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[frameIndex], NULL, IID_PPV_ARGS(&commandList));
+	hr = graphicsDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocators[frameIndex].Get(), NULL, IID_PPV_ARGS(&commandList));
 	if (FAILED(hr))
 		return false;
 
@@ -210,7 +179,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Default Root Signature Creation
 
-	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0);
+	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0, "Default");
 
 #pragma endregion
 #pragma region Default Viewport & ScissorRect Creation
@@ -240,23 +209,28 @@ void D3D12R_Shutdown()
 
 	// get swapchain out of full screen before exiting
 	BOOL fs = false;
-	if (swapChain->GetFullscreenState(&fs, NULL))
+	if (SUCCEEDED( swapChain->GetFullscreenState(&fs, NULL)))
 		swapChain->SetFullscreenState(false, NULL);
 
-	graphicsDevice->Release();
-	swapChain->Release();
-	commandQueue->Release();
-	delete renderTargetResource;
-	//rtvDescriptorHeap->Release();
-	commandList->Release();
-	defaultSignature->Release();
+	graphicsDevice.Reset();
+	graphicsDevice.Reset();
+	swapChain.Reset();
+	commandQueue.Reset();
+	rtvDescriptorHeap.Reset();
+	commandList.Reset();
+	defaultSignature.Reset();
 
 	for (int i = 0; i < frameBufferCount; ++i)
 	{
-		//renderTargets[i]->Release();
-		commandAllocators[i]->Release();
-		fence[i]->Release();
+		renderTargets[i].Reset();
+		commandAllocators[i].Reset();
+		fence[i].Reset();
 	};
+
+	for (auto i = ownedRootSignatureParams.begin(); i != ownedRootSignatureParams.end(); i++)
+		i->second.reset();
+	for (auto i = ownedRootSignatures.begin(); i != ownedRootSignatures.end(); i++)
+		i->second.Reset();
 }
 
 void D3D12R_BeginRender()
@@ -264,11 +238,11 @@ void D3D12R_BeginRender()
 	D3D12R_WaitForPreviousFrame();
 
 	commandAllocators[frameIndex]->Reset();
-	commandList->Reset(commandAllocators[frameIndex], nullptr);
+	commandList->Reset(commandAllocators[frameIndex].Get(), nullptr);
 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargetResource->pResourceArray[frameIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(renderTargetResource->view.descriptorBuffer->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
@@ -321,10 +295,10 @@ void D3D12R_SetViewport(float width, float height)
 
 void D3D12R_EndRender()
 {
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargetResource->pResourceArray[frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	D3D12R_DispatchCommandList();
-	commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
+	commandQueue->Signal(fence[frameIndex].Get(), fenceValue[frameIndex]);
 
 	swapChain->Present(0, 0);
 }
@@ -332,7 +306,7 @@ void D3D12R_EndRender()
 void D3D12R_DispatchCommandList()
 {
 	commandList->Close();
-	ID3D12CommandList* ppCommandList[] = { commandList };
+	ID3D12CommandList* ppCommandList[] = { commandList.Get() };
 	commandQueue->ExecuteCommandLists(_countof(ppCommandList), ppCommandList);
 }
 
@@ -349,9 +323,9 @@ void D3D12R_WaitForPreviousFrame()
 	fenceValue[frameIndex]++;
 }
 
-ID3D12RootSignature* D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters)
+ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters, std::string signatureName)
 {
-	ID3D12RootSignature* signature;
+	ComPtr<ID3D12RootSignature> signature;
 
 	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
 	rootSignatureDesc.NumParameters = numOfParameters;
@@ -360,15 +334,17 @@ ID3D12RootSignature* D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamt
 	rootSignatureDesc.pStaticSamplers = nullptr;
 	rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	ID3DBlob* blob;
+	ComPtr<ID3DBlob> blob;
 	D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, nullptr);
 
-	graphicsDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&signature));
+	graphicsDevice->CreateRootSignature(0, blob.Get()->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&signature));
 	
+	ownedRootSignatures[signatureName] = signature;
+
 	return signature;
 }
 
-bool D3D12R_CreateShaderByteCode(D3D12RShaderWrapper* shader)
+bool D3D12R_CreateShaderByteCode(D3D12R_ShaderWrapper* shader)
 {
 	HRESULT hr;
 
@@ -398,9 +374,9 @@ bool D3D12R_CreateShaderByteCode(D3D12RShaderWrapper* shader)
 	return true;
 }
 
-ID3D12PipelineState* D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12RShaderWrapper** arrayOfShaders, unsigned int numOfShaders)
+ComPtr<ID3D12PipelineState>  D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12R_ShaderWrapper** arrayOfShaders, unsigned int numOfShaders)
 {
-	ID3D12PipelineState* pipelineState;
+	ComPtr<ID3D12PipelineState> pipelineState;
 
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
 	inputLayoutDesc.NumElements = numOfElements;
@@ -422,7 +398,7 @@ ID3D12PipelineState* D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignatu
 	if (rootSignature)
 		psoDesc.pRootSignature = rootSignature; // the root signature that describes the input data this pso needs
 	else
-		psoDesc.pRootSignature = defaultSignature;
+		psoDesc.pRootSignature = defaultSignature.Get();
 
 	for (unsigned int i = 0; i < numOfShaders; i++)
 	{
@@ -443,16 +419,16 @@ ID3D12PipelineState* D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignatu
 	return pipelineState;
 }
 
-D3D12R_ResourceWrapper* D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
+unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
 {
-	D3D12R_ResourceWrapper* vertexBuffer = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_VertexBuffer);
+	unique_ptr<D3D12R_DrawResource> vertexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_VertexBuffer);
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
 	graphicsDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr, IID_PPV_ARGS(&vertexBuffer->pResource));
+		nullptr, IID_PPV_ARGS(&vertexBuffer.get()->pResource));
 	vertexBuffer->pResource->SetName(L"Vertex Buffer Resource Heap");
 
 	ID3D12Resource* uploadBuffer;
@@ -466,22 +442,23 @@ D3D12R_ResourceWrapper* D3D12R_CreateVertexBuffer(void* vertices, unsigned int v
 	vertexData.RowPitch = vBufferSize;
 	vertexData.SlicePitch = vBufferSize;
 
-	UpdateSubresources(commandList, vertexBuffer->pResource, uploadBuffer, 0, 0, 1, &vertexData);
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer->pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+	UpdateSubresources(commandList.Get(), vertexBuffer.get()->pResource.Get(), uploadBuffer, 0, 0, 1, &vertexData);
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
 	vertexBuffer->view.vertexBuffer = new D3D12_VERTEX_BUFFER_VIEW;
 
-	vertexBuffer->view.vertexBuffer->BufferLocation = vertexBuffer->pResource->GetGPUVirtualAddress();
+	vertexBuffer->view.vertexBuffer->BufferLocation = vertexBuffer.get()->pResource->GetGPUVirtualAddress();
 	vertexBuffer->view.vertexBuffer->StrideInBytes = sizeOfVertex;
 	vertexBuffer->view.vertexBuffer->SizeInBytes = vBufferSize;
 
+	//uploadBuffer->Release();
+
 	return vertexBuffer;
 }
-
-D3D12R_ResourceWrapper* D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
+//
+unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
 {
-	D3D12R_ResourceWrapper* indexBuffer = new D3D12R_ResourceWrapper(D3D12R_ResourceWrapper::ResourceViewType_IndexBuffer);
-
+	std::unique_ptr <D3D12R_DrawResource> indexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_IndexBuffer);
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 
 	graphicsDevice->CreateCommittedResource(
@@ -490,7 +467,7 @@ D3D12R_ResourceWrapper* D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCoun
 		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
 		D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
 		nullptr, // optimized clear value must be null for this type of resource
-		IID_PPV_ARGS(&indexBuffer->pResource));
+		IID_PPV_ARGS(&indexBuffer.get()->pResource));
 
 	// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
 	indexBuffer->pResource->SetName(L"Index Buffer Resource Heap");
@@ -511,15 +488,48 @@ D3D12R_ResourceWrapper* D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCoun
 	indexData.RowPitch = bufferSize; // size of all our index buffer
 	indexData.SlicePitch = bufferSize; // also the size of our index buffer
 
-	UpdateSubresources(commandList, indexBuffer->pResource, iBufferUploadHeap, 0, 0, 1, &indexData);
+	UpdateSubresources(commandList.Get(), indexBuffer.get()->pResource.Get(), iBufferUploadHeap, 0, 0, 1, &indexData);
 
 	// transition the vertex buffer data from copy destination state to vertex buffer state
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer->pResource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
 	indexBuffer->view.indexBuffer = new D3D12_INDEX_BUFFER_VIEW;
 	indexBuffer->view.indexBuffer->BufferLocation = indexBuffer->pResource->GetGPUVirtualAddress();
 	indexBuffer->view.indexBuffer->Format = DXGI_FORMAT_R32_UINT;
 	indexBuffer->view.indexBuffer->SizeInBytes = bufferSize;
 
+	//iBufferUploadHeap->Release();
+
 	return indexBuffer;
 }
+//
+//void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes)
+//{
+//	for (int i = 0; i < rootSignatureParams->parameterCount; i++)
+//	{
+//		if (rootSignatureParams->parameterInfo[i].parameterType != D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+//			rootSignatureParams->parameterInfo[i].parameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+//		{
+//			for (int v = 0; v < frameBufferCount; v++)
+//			{
+//				ID3D12Resource* uploadBuffer[frameBufferCount];
+//				graphicsDevice->CreateCommittedResource(
+//					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
+//					D3D12_HEAP_FLAG_NONE, // no flags
+//					&CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+//					D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
+//					nullptr, // we do not have use an optimized clear value for constant buffers
+//					IID_PPV_ARGS(&uploadBuffer[v]));
+//
+//				UINT8* bufferAddress[frameBufferCount];
+//
+//				CD3DX12_RANGE readRange(0, 0);
+//				uploadBuffer[v]->Map(0, &readRange, reinterpret_cast<void**>(&bufferAddress[i]));
+//
+//				int allignment = (inputDataSizes[i] + 255) & ~255;
+//				int f = 0;
+//			}
+//		}
+//	}
+//}
+

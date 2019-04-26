@@ -6,6 +6,8 @@
 
 #include <Windows.h>
 #include "D3D12Renderer.h"
+#include "D3D12R_SignatureParametersHelper.h"
+#include "D3D12R_RSP.h"
 
 #include <string.h>
 #include <memory>
