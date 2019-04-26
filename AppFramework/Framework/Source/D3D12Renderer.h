@@ -1,13 +1,14 @@
 #pragma once
-#include <memory>
-#include <vector>
-#include <map>
 #include <Windows.h>
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <memory>
+#include <vector>
+#include <map>
+#include <string>
 
 #include "d3dx12.h"
 
@@ -22,7 +23,14 @@ using std::unique_ptr;
 using std::make_shared;
 using std::make_unique;
 
-struct D3D12R_RSP;
+enum DescriptorBufferUse
+{
+    DescriptorBufferUse_Generic = 0x01,
+    DescriptorBufferUse_ConstantBuffer,
+    DescriptorBufferUse_MultiSample
+};
+struct D3D12R_RootSignatureWrapper;
+struct D3D12R_DescriptorHeapWrapper;
 class D3D12R_SignatureParametersHelper;
 
 struct D3D12R_ShaderWrapper
@@ -48,13 +56,15 @@ struct D3D12R_DrawResource
 		ResourceType_VertexBuffer = 0x01,
 		ResourceType_IndexBuffer = 0x02,
 	};
-	union ResourceView
+
+    union ResourceView
 	{
 		D3D12_VERTEX_BUFFER_VIEW* vertexBuffer;
 		D3D12_INDEX_BUFFER_VIEW* indexBuffer;
 	};
 
 	ComPtr<ID3D12Resource> pResource = nullptr;
+    ComPtr<ID3D12Resource> pUpload = nullptr;
 	ResourceView view;
 private:
 	ResourceType viewType;
@@ -69,8 +79,6 @@ public:
 	ResourceType* GetViewType() { return &viewType; }
 	~D3D12R_DrawResource()
 	{
-		if (pResource)
-			pResource->Release();
 		if (viewType == ResourceType_VertexBuffer)
 			delete view.vertexBuffer;
 		if (viewType == ResourceType_IndexBuffer)
@@ -78,6 +86,8 @@ public:
 
 	}
 };
+
+
 
 namespace D3D12Renderer
 {
@@ -87,8 +97,9 @@ namespace D3D12Renderer
 	extern ComPtr<ID3D12Device> graphicsDevice;												// The graphics device that will handle the rendering
 	extern ComPtr<ID3D12CommandQueue> commandQueue;											// Responsible for sending command lists to the device for execution
 	extern ComPtr<IDXGISwapChain3> swapChain;													// Swap chain used to switch between render targets
-	extern ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;										// Descriptor for the render-targets
-	extern ComPtr<ID3D12Resource> renderTargets[];												// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
+    extern unique_ptr<D3D12R_DescriptorHeapWrapper> rtvDescriptor;
+	//extern ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;										// Descriptor for the render-targets
+	//extern ComPtr<ID3D12Resource> renderTargets[];												// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
 	extern ComPtr<ID3D12CommandAllocator> commandAllocators[];									// Have enough command allocators for each buffer * threads
 	extern ComPtr<ID3D12GraphicsCommandList> commandList;										// Records commands for the device to execute
 	extern ComPtr<ID3D12Fence> fence[];														// Utilized for syncing the GPU and CPU
@@ -104,8 +115,7 @@ namespace D3D12Renderer
 
 	extern ComPtr<ID3D12RootSignature> defaultSignature;
 
-	extern std::map<std::string, shared_ptr<D3D12R_RSP>> ownedRootSignatureParams;
-	extern std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
+	extern std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
 }
 
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
@@ -134,11 +144,12 @@ void D3D12R_WaitForPreviousFrame();
 
 #pragma region DirextX Object Creation
 
-ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters, std::string signatureName);
+ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters);
 bool D3D12R_CreateShaderByteCode(D3D12R_ShaderWrapper* shader);
 ComPtr<ID3D12PipelineState> D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12R_ShaderWrapper** arrayOfShaders, unsigned int numOfShaders);
 unique_ptr<D3D12R_DrawResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
 unique_ptr<D3D12R_DrawResource> D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
+ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON, LPCWSTR bufferName = nullptr);
 
 //void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes);
 
