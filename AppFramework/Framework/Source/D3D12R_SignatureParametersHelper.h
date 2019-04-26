@@ -19,7 +19,7 @@ public:
 		return &rootParameters[0];
 	}
 
-	weak_ptr<D3D12R_RootSignatureWrapper> GenerateRootSignature(std::string infoName);
+	weak_ptr<D3D12R_RootSignatureWrapper> GenerateRootSignature(std::string signatureName);
 private:
 	char freeSpace = 64;
 	unsigned long constantBufferCount = 0;

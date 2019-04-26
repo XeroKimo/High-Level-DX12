@@ -122,13 +122,12 @@ void Framework::Run()
 	//int numRange = 1;
 	//test->CreateRootDescriptorTable(&type, &numDesc, numRange, D3D12_SHADER_VISIBILITY_ALL);
 	weak_ptr<D3D12R_RootSignatureWrapper> params = test->GenerateRootSignature("params");
-	ComPtr<ID3D12RootSignature> testSignature = D3D12R_CreateRootSignature(test->GetRootParameters(), test->GetParameterCount(), "testSignature");
 
 
 	//unsigned int inputSizes[] = { 0,257 };
 	////D3D12R_GenerateUniqueRSPResources(testParams, &inputSizes[0]);
 
-	ComPtr<ID3D12PipelineState> pipelineState = D3D12R_CreatePipelineState(testSignature.Get(), inputLayout, 2 ,shaders,2);
+	ComPtr<ID3D12PipelineState> pipelineState = D3D12R_CreatePipelineState(params.lock()->rootSignature.Get(), inputLayout, 2 ,shaders,2);
 
 	float color[4] = { 0.0f,1.0f,0.0f,0.0f };
 
@@ -156,7 +155,7 @@ void Framework::Run()
 			D3D12R_BeginRender();
 #pragma region D3D12 Render Testing
 
-			D3D12R_UsingPipeline(pipelineState.Get(), testSignature.Get());
+			D3D12R_UsingPipeline(pipelineState.Get(), params.lock()->rootSignature.Get());
 			D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues , & color[0], 0);
 
 			D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);

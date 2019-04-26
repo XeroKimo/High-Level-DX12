@@ -214,7 +214,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Default Root Signature Creation
 
-	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0, "Default");
+	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0);
 
 #pragma endregion
 #pragma region Default Viewport & ScissorRect Creation
@@ -355,7 +355,7 @@ void D3D12R_WaitForPreviousFrame()
 	fenceValue[frameIndex]++;
 }
 
-ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters, std::string signatureName)
+ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters)
 {
 	ComPtr<ID3D12RootSignature> signature;
 
@@ -370,8 +370,6 @@ ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* roo
 	D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, nullptr);
 
 	graphicsDevice->CreateRootSignature(0, blob.Get()->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&signature));
-	
-	ownedRootSignatures[signatureName] = signature;
 
 	return signature;
 }

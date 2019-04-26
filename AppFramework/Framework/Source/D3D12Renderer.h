@@ -116,7 +116,6 @@ namespace D3D12Renderer
 	extern ComPtr<ID3D12RootSignature> defaultSignature;
 
 	extern std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
-	extern std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
@@ -145,7 +144,7 @@ void D3D12R_WaitForPreviousFrame();
 
 #pragma region DirextX Object Creation
 
-ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters, std::string signatureName);
+ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters);
 bool D3D12R_CreateShaderByteCode(D3D12R_ShaderWrapper* shader);
 ComPtr<ID3D12PipelineState> D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12R_ShaderWrapper** arrayOfShaders, unsigned int numOfShaders);
 unique_ptr<D3D12R_DrawResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);

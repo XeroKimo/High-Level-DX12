@@ -140,9 +140,10 @@ void D3D12R_SignatureParametersHelper::CreateRootDescriptorTable(D3D12_DESCRIPTO
 	}
 }
 
-weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::GenerateRootSignature(std::string infoName)
+weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::GenerateRootSignature(std::string signatureName)
 {
 	shared_ptr<D3D12R_RootSignatureWrapper> info = make_shared<D3D12R_RootSignatureWrapper>();
+    info->rootSignature = D3D12R_CreateRootSignature(GetRootParameters(), GetParameterCount());
 	info->parameterCount = static_cast<UINT>(rootParameters.size());
 	info->parameterInfo = make_unique<D3D12R_RSPInfo[]>(rootParameters.size());
 	for (int i = 0; i < rootParameters.size(); i++)
@@ -185,7 +186,7 @@ weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::Generate
 		}
 	}
 
-	ownedRootSignatureParams[infoName] = info;
+	ownedRootSignatureParams[signatureName] = info;
 
 	return info;
 }
