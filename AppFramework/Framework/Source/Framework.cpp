@@ -8,7 +8,6 @@ Framework::Framework()
 
 Framework::~Framework()
 {
-	int test = D3D12Renderer::ownedRootSignatureParams["params"].use_count();
 	D3D12R_Shutdown();
 }
 
@@ -93,6 +92,7 @@ void Framework::Run()
 	};
 	std::unique_ptr<D3D12R_DrawResource> vbufferView = D3D12R_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
 
+    //vbufferView.release();
 	DWORD indices[3] =
 	{
 		0,1,2
@@ -115,7 +115,7 @@ void Framework::Run()
 	D3D12R_ShaderWrapper* shaders[] = { &vertexShader, &pixelShader };
 
 
-	D3D12R_SignatureParametersHelper* test = new D3D12R_SignatureParametersHelper();
+	unique_ptr<D3D12R_SignatureParametersHelper> test = make_unique<D3D12R_SignatureParametersHelper>();
 	test->CreateRootConstant(4, D3D12_SHADER_VISIBILITY_ALL);
 	//D3D12_DESCRIPTOR_RANGE_TYPE type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	//int numDesc = 1;
@@ -128,9 +128,9 @@ void Framework::Run()
 	//unsigned int inputSizes[] = { 0,257 };
 	////D3D12R_GenerateUniqueRSPResources(testParams, &inputSizes[0]);
 
-	//ComPtr<ID3D12PipelineState> pipelineState = D3D12R_CreatePipelineState(testSignature.Get(), inputLayout, 2 ,shaders,2);
+	ComPtr<ID3D12PipelineState> pipelineState = D3D12R_CreatePipelineState(testSignature.Get(), inputLayout, 2 ,shaders,2);
 
-	//float color[4] = { 0.0f,1.0f,0.0f,0.0f };
+	float color[4] = { 0.0f,1.0f,0.0f,0.0f };
 
 	D3D12R_DispatchCommandList();
 
@@ -156,12 +156,12 @@ void Framework::Run()
 			D3D12R_BeginRender();
 #pragma region D3D12 Render Testing
 
-			//D3D12R_UsingPipeline(pipelineState.Get(), testSignature.Get());
-			//D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues , & color[0], 0);
+			D3D12R_UsingPipeline(pipelineState.Get(), testSignature.Get());
+			D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues , & color[0], 0);
 
-			//D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
-			//D3D12R_UsingIndexBuffer(iBufferView->view.indexBuffer);
-			//D3D12R_DrawIndexedInstanced(3, 1, 0, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
+			D3D12R_UsingIndexBuffer(iBufferView->view.indexBuffer);
+			D3D12R_DrawIndexedInstanced(3, 1, 0, 0, 0, D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 #pragma endregion
 
@@ -172,12 +172,6 @@ void Framework::Run()
     }
 
 #pragma region D3D12 Render Testing Freeing memory
-
-	//delete params;
-	//delete vbufferView;
-	//delete iBufferView;
-
-	//pipelineState->Release();
 
 	int i = 0;
 #pragma endregion

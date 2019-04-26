@@ -13,8 +13,9 @@ namespace D3D12Renderer
 	ComPtr<ID3D12Device> graphicsDevice;												// The graphics device that will handle the rendering
 	ComPtr<ID3D12CommandQueue> commandQueue;											// Responsible for sending command lists to the device for execution
 	ComPtr<IDXGISwapChain3> swapChain;													// Swap chain used to switch between render targets
-	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;									// Descriptor for the render-targets
-	ComPtr<ID3D12Resource> renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
+    unique_ptr<D3D12R_DescriptorHeapWrapper> rtvDescriptor;
+    //ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;									// Descriptor for the render-targets
+	//ComPtr<ID3D12Resource> renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
 	ComPtr<ID3D12CommandAllocator> commandAllocators[frameBufferCount * threadCount];	// Have enough command allocators for each buffer * threads
 	ComPtr<ID3D12GraphicsCommandList> commandList;										// Records commands for the device to execute
 	ComPtr<ID3D12Fence>fence [frameBufferCount * threadCount];							// Utilized for syncing the GPU and CPU
@@ -39,7 +40,6 @@ using namespace D3D12Renderer;
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 {
 	HRESULT hr;	// TODO: Delete all hr stuff when we know it works
-
 	IDXGIFactory4* dxgiFactory;
 	hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
@@ -117,35 +117,67 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 #pragma endregion
 #pragma region Render-Targets View & Render Targets Creation 
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-	rtvHeapDesc.NumDescriptors = frameBufferCount;
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	rtvHeapDesc.NodeMask = 0;
 
-	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
-	if (FAILED(hr))
-		return false;
+    rtvDescriptor = make_unique<D3D12R_DescriptorHeapWrapper>();
 
-	rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = frameBufferCount;
+    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    rtvHeapDesc.NodeMask = 0;
+
+    hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptor->heap));
+    if (FAILED(hr))
+        return false;
+
+    rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 #pragma region Render-Targets / Render Buffers Creation
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	for (int i = 0; i < frameBufferCount; i++)
-	{
-		//Get a buffer in the swap chain
-		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-		if (FAILED(hr))
-			return false;
-		//Create a render-target in the rtvDescriptorHeap
-		graphicsDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
-		//Offset the value to store the next render-target
-		rtvHandle.Offset(1, rtvDescriptorSize);
-	}
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptor->heap->GetCPUDescriptorHandleForHeapStart());
+    rtvDescriptor->descriptors.resize(2);
+    for (int i = 0; i < frameBufferCount; i++)
+    {
+        //Get a buffer in the swap chain
+        hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&rtvDescriptor->descriptors[i]));
+        if (FAILED(hr))
+            return false;
+        //Create a render-target in the rtvDescriptorHeap
+        graphicsDevice->CreateRenderTargetView(rtvDescriptor->descriptors[i].Get(), nullptr, rtvHandle);
+        //Offset the value to store the next render-target
+        rtvHandle.Offset(1, rtvDescriptorSize);
+    }
 
 #pragma endregion
+//	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+//	rtvHeapDesc.NumDescriptors = frameBufferCount;
+//	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+//	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+//	rtvHeapDesc.NodeMask = 0;
+//
+//	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
+//	if (FAILED(hr))
+//		return false;
+//
+//	rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+//
+//#pragma region Render-Targets / Render Buffers Creation
+//
+//	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+//
+//	for (int i = 0; i < frameBufferCount; i++)
+//	{
+//		//Get a buffer in the swap chain
+//		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+//		if (FAILED(hr))
+//			return false;
+//		//Create a render-target in the rtvDescriptorHeap
+//		graphicsDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
+//		//Offset the value to store the next render-target
+//		rtvHandle.Offset(1, rtvDescriptorSize);
+//	}
+//
+//#pragma endregion
 #pragma endregion
 #pragma region Command Allocators & Command List Creation
 
@@ -209,28 +241,25 @@ void D3D12R_Shutdown()
 
 	// get swapchain out of full screen before exiting
 	BOOL fs = false;
-	if (SUCCEEDED( swapChain->GetFullscreenState(&fs, NULL)))
-		swapChain->SetFullscreenState(false, NULL);
-
-	graphicsDevice.Reset();
+    if (SUCCEEDED(swapChain->GetFullscreenState(&fs, NULL)))
+        swapChain->SetFullscreenState(false, NULL);
 	graphicsDevice.Reset();
 	swapChain.Reset();
 	commandQueue.Reset();
-	rtvDescriptorHeap.Reset();
+    rtvDescriptor.reset();
+	//rtvDescriptorHeap.Reset();
 	commandList.Reset();
 	defaultSignature.Reset();
 
 	for (int i = 0; i < frameBufferCount; ++i)
 	{
-		renderTargets[i].Reset();
+		//renderTargets[i].Reset();
 		commandAllocators[i].Reset();
 		fence[i].Reset();
 	};
 
-	for (auto i = ownedRootSignatureParams.begin(); i != ownedRootSignatureParams.end(); i++)
-		i->second.reset();
-	for (auto i = ownedRootSignatures.begin(); i != ownedRootSignatures.end(); i++)
-		i->second.Reset();
+    ownedRootSignatureParams.clear();
+    ownedRootSignatures.clear();
 }
 
 void D3D12R_BeginRender()
@@ -240,9 +269,9 @@ void D3D12R_BeginRender()
 	commandAllocators[frameIndex]->Reset();
 	commandList->Reset(commandAllocators[frameIndex].Get(), nullptr);
 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rtvDescriptor->descriptors[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptor->heap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
@@ -295,7 +324,7 @@ void D3D12R_SetViewport(float width, float height)
 
 void D3D12R_EndRender()
 {
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rtvDescriptor->descriptors[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	D3D12R_DispatchCommandList();
 	commandQueue->Signal(fence[frameIndex].Get(), fenceValue[frameIndex]);

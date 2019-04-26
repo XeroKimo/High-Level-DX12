@@ -1,11 +1,12 @@
 #include "stdafx.h"
 #include "D3D12R_PipelineStateObject.h"
 
-D3D12R_PipelineStateObject::D3D12R_PipelineStateObject(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> signature, shared_ptr<D3D12R_RSP> rootSignatureParams)
+D3D12R_PipelineStateObject::D3D12R_PipelineStateObject(ComPtr<ID3D12PipelineState> pipeline, ComPtr<ID3D12RootSignature> signature, weak_ptr<D3D12R_RSP> rootSignatureParams)
 {
 	m_pipelineState = pipeline;
 	m_rootSignature = signature;
-	m_rootSignatureParams = rootSignatureParams;
+	m_rootSignatureParams = rootSignatureParams.lock();
+    m_uniqueIDCount = 0;
 }
 
 D3D12R_PipelineStateObject::~D3D12R_PipelineStateObject()
