@@ -1,7 +1,6 @@
 #pragma once
-#include "D3D12Renderer.h"
-
-struct D3D12R_RSP;
+#include "D3D12R.h"
+struct D3D12R_RootSignatureWrapper;
 
 class D3D12R_SignatureParametersHelper
 {
@@ -20,7 +19,7 @@ public:
 		return &rootParameters[0];
 	}
 
-	weak_ptr<D3D12R_RSP> MakeParameterInfo(std::string infoName);
+	weak_ptr<D3D12R_RootSignatureWrapper> GenerateRootSignature(std::string signatureName);
 private:
 	char freeSpace = 64;
 	unsigned long constantBufferCount = 0;

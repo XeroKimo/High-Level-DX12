@@ -47,13 +47,19 @@
     <ClInclude Include="Framework\Source\d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_RSP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Framework\Source\D3D12R_SignatureParametersHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Framework\Source\D3D12R_PipelineStateObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Source\D3D12R.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Source\D3D12R_RootSignatureWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Source\D3D12R_DescriptorHeapWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,4 @@
 #include "D3D12R_SignatureParametersHelper.h"
-#include "D3D12R_RSP.h"
 
 using namespace D3D12Renderer;
 
@@ -141,45 +140,53 @@ void D3D12R_SignatureParametersHelper::CreateRootDescriptorTable(D3D12_DESCRIPTO
 	}
 }
 
-weak_ptr<D3D12R_RSP> D3D12R_SignatureParametersHelper::MakeParameterInfo(std::string infoName)
+weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::GenerateRootSignature(std::string signatureName)
 {
-	shared_ptr<D3D12R_RSP> info = make_shared<D3D12R_RSP>();
+	shared_ptr<D3D12R_RootSignatureWrapper> info = make_shared<D3D12R_RootSignatureWrapper>();
+    info->rootSignature = D3D12R_CreateRootSignature(GetRootParameters(), GetParameterCount());
 	info->parameterCount = static_cast<UINT>(rootParameters.size());
 	info->parameterInfo = make_unique<D3D12R_RSPInfo[]>(rootParameters.size());
-	info->parameterInputs = make_unique<D3D12R_RSPInput[]>(rootParameters.size());
 	for (int i = 0; i < rootParameters.size(); i++)
 	{
 		info->parameterInfo.get()[i].parameterType = rootParameters[i].ParameterType;
 		if (rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
 		{
-			info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(1);
-			info->parameterInfo.get()[i].shaderRegister.get()[0] = rootParameters[i].Constants.ShaderRegister;
+#ifdef DDEBUG
+            info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(1);
+            info->parameterInfo.get()[i].shaderRegister.get()[0] = rootParameters[i].Constants.ShaderRegister;
+#endif // DDEBUG
 			info->parameterInfo.get()[i].numberOfValues = rootParameters[i].Constants.Num32BitValues;
 		}
 		else if (rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV ||
 			rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV ||
 			rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
 		{
-			info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(1);
+#ifdef DDEBUG
+            info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(1);
 			info->parameterInfo.get()[i].shaderRegister.get()[0] = rootParameters[i].Descriptor.ShaderRegister;
+#endif
 			info->parameterInfo.get()[i].numberOfValues = 1;
 		}
 		else if (rootParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 		{
 			info->parameterInfo.get()[i].numberOfValues = rootParameters[i].DescriptorTable.NumDescriptorRanges;
-			info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(rootParameters[i].DescriptorTable.NumDescriptorRanges);
+#ifdef DDEBUG
+            info->parameterInfo.get()[i].shaderRegister = make_unique<unsigned int[]>(rootParameters[i].DescriptorTable.NumDescriptorRanges);
+#endif
 			info->parameterInfo.get()[i].numberOfDescriptor = make_unique<unsigned int[]>(rootParameters[i].DescriptorTable.NumDescriptorRanges);
 			info->parameterInfo.get()[i].rangeType = make_unique<D3D12_DESCRIPTOR_RANGE_TYPE[]>(rootParameters[i].DescriptorTable.NumDescriptorRanges);
 			for (int v = 0; v < static_cast<int>(rootParameters[i].DescriptorTable.NumDescriptorRanges); v++)
 			{
+#ifdef DDEBUG
 				info->parameterInfo.get()[i].shaderRegister.get()[v] = rootParameters[i].DescriptorTable.pDescriptorRanges[v].BaseShaderRegister;
+#endif
 				info->parameterInfo.get()[i].numberOfDescriptor.get()[v] = rootParameters[i].DescriptorTable.pDescriptorRanges[v].NumDescriptors;
 				info->parameterInfo.get()[i].rangeType.get()[v] = rootParameters[i].DescriptorTable.pDescriptorRanges[v].RangeType;
 			}
 		}
 	}
 
-	ownedRootSignatureParams[infoName] = info;
+	ownedRootSignatureParams[signatureName] = info;
 
 	return info;
 }

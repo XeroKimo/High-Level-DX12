@@ -1,10 +1,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "D3D12Renderer.h"
-#include "D3D12R_SignatureParametersHelper.h"
-#include "D3D12R_RSP.h"
-
+#include "D3D12R.h"
 namespace D3D12Renderer
 {
 	extern const int frameBufferCount = 2;
@@ -13,8 +10,9 @@ namespace D3D12Renderer
 	ComPtr<ID3D12Device> graphicsDevice;												// The graphics device that will handle the rendering
 	ComPtr<ID3D12CommandQueue> commandQueue;											// Responsible for sending command lists to the device for execution
 	ComPtr<IDXGISwapChain3> swapChain;													// Swap chain used to switch between render targets
-	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;									// Descriptor for the render-targets
-	ComPtr<ID3D12Resource> renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
+    unique_ptr<D3D12R_DescriptorHeapWrapper> rtvDescriptor;
+    //ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;									// Descriptor for the render-targets
+	//ComPtr<ID3D12Resource> renderTargets[frameBufferCount];							// Resources in the rtv Descriptor heap, number of render targets should equal the amount of render buffers
 	ComPtr<ID3D12CommandAllocator> commandAllocators[frameBufferCount * threadCount];	// Have enough command allocators for each buffer * threads
 	ComPtr<ID3D12GraphicsCommandList> commandList;										// Records commands for the device to execute
 	ComPtr<ID3D12Fence>fence [frameBufferCount * threadCount];							// Utilized for syncing the GPU and CPU
@@ -30,7 +28,7 @@ namespace D3D12Renderer
 
 	ComPtr<ID3D12RootSignature> defaultSignature;
 
-	std::map<std::string, shared_ptr<D3D12R_RSP>> ownedRootSignatureParams;
+	std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
 	std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
@@ -39,7 +37,6 @@ using namespace D3D12Renderer;
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 {
 	HRESULT hr;	// TODO: Delete all hr stuff when we know it works
-
 	IDXGIFactory4* dxgiFactory;
 	hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
@@ -117,35 +114,73 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 #pragma endregion
 #pragma region Render-Targets View & Render Targets Creation 
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-	rtvHeapDesc.NumDescriptors = frameBufferCount;
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	rtvHeapDesc.NodeMask = 0;
 
-	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
-	if (FAILED(hr))
-		return false;
+    rtvDescriptor = make_unique<D3D12R_DescriptorHeapWrapper>();
 
-	rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+    rtvHeapDesc.NumDescriptors = frameBufferCount;
+    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    rtvHeapDesc.NodeMask = 0;
+
+    hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptor->heap));
+    if (FAILED(hr))
+        return false;
+
+    rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 #pragma region Render-Targets / Render Buffers Creation
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptor->heap->GetCPUDescriptorHandleForHeapStart());
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+    rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+    rtvDesc.Texture2D.PlaneSlice = 0;
 
-	for (int i = 0; i < frameBufferCount; i++)
-	{
-		//Get a buffer in the swap chain
-		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
-		if (FAILED(hr))
-			return false;
-		//Create a render-target in the rtvDescriptorHeap
-		graphicsDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
-		//Offset the value to store the next render-target
-		rtvHandle.Offset(1, rtvDescriptorSize);
-	}
+    rtvDescriptor->descriptors.resize(2);
+    for (int i = 0; i < frameBufferCount; i++)
+    {
+        //Get a buffer in the swap chain
+        hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&rtvDescriptor->descriptors[i]));
+        if (FAILED(hr))
+            return false;
+        //Create a render-target in the rtvDescriptorHeap
+        graphicsDevice->CreateRenderTargetView(rtvDescriptor->descriptors[i].Get(), &rtvDesc, rtvHandle);
+        //Offset the value to store the next render-target
+        rtvHandle.Offset(1, rtvDescriptorSize);
+    }
 
 #pragma endregion
+//	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+//	rtvHeapDesc.NumDescriptors = frameBufferCount;
+//	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+//	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+//	rtvHeapDesc.NodeMask = 0;
+//
+//	hr = graphicsDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap));
+//	if (FAILED(hr))
+//		return false;
+//
+//	rtvDescriptorSize = graphicsDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+//
+//#pragma region Render-Targets / Render Buffers Creation
+//
+//	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+//
+//	for (int i = 0; i < frameBufferCount; i++)
+//	{
+//		//Get a buffer in the swap chain
+//		hr = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargets[i]));
+//		if (FAILED(hr))
+//			return false;
+//		//Create a render-target in the rtvDescriptorHeap
+//		graphicsDevice->CreateRenderTargetView(renderTargets[i].Get(), nullptr, rtvHandle);
+//		//Offset the value to store the next render-target
+//		rtvHandle.Offset(1, rtvDescriptorSize);
+//	}
+//
+//#pragma endregion
 #pragma endregion
 #pragma region Command Allocators & Command List Creation
 
@@ -179,7 +214,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 #pragma endregion
 #pragma region Default Root Signature Creation
 
-	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0, "Default");
+	defaultSignature = D3D12R_CreateRootSignature(nullptr, 0);
 
 #pragma endregion
 #pragma region Default Viewport & ScissorRect Creation
@@ -209,28 +244,25 @@ void D3D12R_Shutdown()
 
 	// get swapchain out of full screen before exiting
 	BOOL fs = false;
-	if (SUCCEEDED( swapChain->GetFullscreenState(&fs, NULL)))
-		swapChain->SetFullscreenState(false, NULL);
-
-	graphicsDevice.Reset();
+    if (SUCCEEDED(swapChain->GetFullscreenState(&fs, NULL)))
+        swapChain->SetFullscreenState(false, NULL);
 	graphicsDevice.Reset();
 	swapChain.Reset();
 	commandQueue.Reset();
-	rtvDescriptorHeap.Reset();
+    rtvDescriptor.reset();
+	//rtvDescriptorHeap.Reset();
 	commandList.Reset();
 	defaultSignature.Reset();
 
 	for (int i = 0; i < frameBufferCount; ++i)
 	{
-		renderTargets[i].Reset();
+		//renderTargets[i].Reset();
 		commandAllocators[i].Reset();
 		fence[i].Reset();
 	};
 
-	for (auto i = ownedRootSignatureParams.begin(); i != ownedRootSignatureParams.end(); i++)
-		i->second.reset();
-	for (auto i = ownedRootSignatures.begin(); i != ownedRootSignatures.end(); i++)
-		i->second.Reset();
+    ownedRootSignatureParams.clear();
+    ownedRootSignatures.clear();
 }
 
 void D3D12R_BeginRender()
@@ -240,9 +272,9 @@ void D3D12R_BeginRender()
 	commandAllocators[frameIndex]->Reset();
 	commandList->Reset(commandAllocators[frameIndex].Get(), nullptr);
 
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rtvDescriptor->descriptors[frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptor->heap->GetCPUDescriptorHandleForHeapStart(), frameIndex, rtvDescriptorSize);
 	const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
@@ -295,7 +327,7 @@ void D3D12R_SetViewport(float width, float height)
 
 void D3D12R_EndRender()
 {
-	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(renderTargets[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rtvDescriptor->descriptors[frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	D3D12R_DispatchCommandList();
 	commandQueue->Signal(fence[frameIndex].Get(), fenceValue[frameIndex]);
@@ -323,7 +355,7 @@ void D3D12R_WaitForPreviousFrame()
 	fenceValue[frameIndex]++;
 }
 
-ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters, std::string signatureName)
+ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters)
 {
 	ComPtr<ID3D12RootSignature> signature;
 
@@ -338,8 +370,6 @@ ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* roo
 	D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, nullptr);
 
 	graphicsDevice->CreateRootSignature(0, blob.Get()->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&signature));
-	
-	ownedRootSignatures[signatureName] = signature;
 
 	return signature;
 }
@@ -392,7 +422,7 @@ ComPtr<ID3D12PipelineState>  D3D12R_CreatePipelineState(ID3D12RootSignature* roo
 	psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
 	psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
-	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blend state.
 	psoDesc.NumRenderTargets = 1; // we are only binding one render target
 
 	if (rootSignature)
@@ -425,24 +455,27 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsig
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr, IID_PPV_ARGS(&vertexBuffer.get()->pResource));
-	vertexBuffer->pResource->SetName(L"Vertex Buffer Resource Heap");
+    vertexBuffer->pResource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_Generic, vBufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"Vertex Buffer Resource Heap");
+    vertexBuffer->pUpload = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_UPLOAD, DescriptorBufferUse_Generic, vBufferSize, D3D12_RESOURCE_STATE_GENERIC_READ, L"Vertex Buffer Resource Upload Heap");
 
-	ID3D12Resource* uploadBuffer;
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr, IID_PPV_ARGS(&uploadBuffer));
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE,
+	//	&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_COPY_DEST,
+	//	nullptr, IID_PPV_ARGS(&vertexBuffer.get()->pResource));
+	//vertexBuffer->pResource->SetName(L"Vertex Buffer Resource Heap");
+
+	//ID3D12Resource* uploadBuffer;
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), D3D12_HEAP_FLAG_NONE,
+	//	&CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ,
+	//	nullptr, IID_PPV_ARGS(&uploadBuffer));
 
 	D3D12_SUBRESOURCE_DATA vertexData = {};
 	vertexData.pData = reinterpret_cast<BYTE*>(vertices);
 	vertexData.RowPitch = vBufferSize;
 	vertexData.SlicePitch = vBufferSize;
 
-	UpdateSubresources(commandList.Get(), vertexBuffer.get()->pResource.Get(), uploadBuffer, 0, 0, 1, &vertexData);
+	UpdateSubresources(commandList.Get(), vertexBuffer->pResource.Get(), vertexBuffer->pUpload.Get(), 0, 0, 1, &vertexData);
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
 	vertexBuffer->view.vertexBuffer = new D3D12_VERTEX_BUFFER_VIEW;
@@ -451,7 +484,6 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsig
 	vertexBuffer->view.vertexBuffer->StrideInBytes = sizeOfVertex;
 	vertexBuffer->view.vertexBuffer->SizeInBytes = vBufferSize;
 
-	//uploadBuffer->Release();
 
 	return vertexBuffer;
 }
@@ -461,34 +493,36 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD 
 	std::unique_ptr <D3D12R_DrawResource> indexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_IndexBuffer);
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-		nullptr, // optimized clear value must be null for this type of resource
-		IID_PPV_ARGS(&indexBuffer.get()->pResource));
-
-	// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-	indexBuffer->pResource->SetName(L"Index Buffer Resource Heap");
+    indexBuffer->pResource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_Generic, bufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"Index Buffer Resource Heap");
+    indexBuffer->pUpload = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_UPLOAD, DescriptorBufferUse_Generic, bufferSize, D3D12_RESOURCE_STATE_GENERIC_READ, L"Index Buffer Resource Upload Heap");
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
+	//	D3D12_HEAP_FLAG_NONE, // no flags
+	//	&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
+	//	D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
+	//	nullptr, // optimized clear value must be null for this type of resource
+	//	IID_PPV_ARGS(&indexBuffer.get()->pResource));
+	//// we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
+	//indexBuffer->pResource->SetName(L"Index Buffer Resource Heap");
+    
 
 	// create upload heap to upload index buffer
-	ID3D12Resource* iBufferUploadHeap;
-	graphicsDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-		D3D12_HEAP_FLAG_NONE, // no flags
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
-		D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-		nullptr,
-		IID_PPV_ARGS(&iBufferUploadHeap));
-	iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
+	//ID3D12Resource* iBufferUploadHeap;
+	//graphicsDevice->CreateCommittedResource(
+	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
+	//	D3D12_HEAP_FLAG_NONE, // no flags
+	//	&CD3DX12_RESOURCE_DESC::Buffer(bufferSize), // resource description for a buffer
+	//	D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+	//	nullptr,
+	//	IID_PPV_ARGS(&iBufferUploadHeap));
+	//iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
 
 	D3D12_SUBRESOURCE_DATA indexData = {};
 	indexData.pData = reinterpret_cast<BYTE*>(indices); // pointer to our index array
 	indexData.RowPitch = bufferSize; // size of all our index buffer
 	indexData.SlicePitch = bufferSize; // also the size of our index buffer
 
-	UpdateSubresources(commandList.Get(), indexBuffer.get()->pResource.Get(), iBufferUploadHeap, 0, 0, 1, &indexData);
+	UpdateSubresources(commandList.Get(), indexBuffer->pResource.Get(), indexBuffer->pUpload.Get(), 0, 0, 1, &indexData);
 
 	// transition the vertex buffer data from copy destination state to vertex buffer state
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer.get()->pResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
@@ -498,9 +532,26 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD 
 	indexBuffer->view.indexBuffer->Format = DXGI_FORMAT_R32_UINT;
 	indexBuffer->view.indexBuffer->SizeInBytes = bufferSize;
 
-	//iBufferUploadHeap->Release();
-
 	return indexBuffer;
+}
+ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState, LPCWSTR bufferName)
+{
+    unsigned int bSize = bufferSize;
+    if (bufferUse == DescriptorBufferUse_ConstantBuffer)
+        bSize = (bSize + (1024 * 64)) & ~(1024 * 64);
+    else if (bufferUse == DescriptorBufferUse_MultiSample)
+        bSize = (bSize + (1024 * 1024 * 4)) & ~(1024 * 1024 * 4);
+
+    ComPtr<ID3D12Resource> resource;
+    graphicsDevice->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(heapType), D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(bSize), initialState,
+        nullptr, IID_PPV_ARGS(&resource)
+    );
+    if (bufferName)
+        resource->SetName(bufferName);
+
+    return resource;
 }
 //
 //void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes)
