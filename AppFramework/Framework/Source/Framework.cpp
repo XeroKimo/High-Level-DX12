@@ -90,14 +90,14 @@ void Framework::Run()
 		VertexDesc(XMFLOAT3(0.5f,-0.5f,0.5f)   , XMFLOAT4(0.0f,0.0f,1.0f,1.0f)),
 		VertexDesc(XMFLOAT3(-0.5f, -0.5f ,0.5f), XMFLOAT4(0.0f,1.0f,0.0f,1.0f)),
 	};
-	std::unique_ptr<D3D12R_DrawResource> vbufferView = D3D12R_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
+	std::unique_ptr<D3D12R_PrimitiveResource> vbufferView = D3D12R_CreateVertexBuffer(vertices, 3, sizeof(VertexDesc));
 
     //vbufferView.release();
 	DWORD indices[3] =
 	{
 		0,1,2
 	};
-	std::unique_ptr < D3D12R_DrawResource> iBufferView = D3D12R_CreateIndexBuffer(indices, 3);
+	std::unique_ptr < D3D12R_PrimitiveResource> iBufferView = D3D12R_CreateIndexBuffer(indices, 3);
 
 	D3D12R_ShaderWrapper vertexShader = D3D12R_ShaderWrapper(L"Framework/Source/VertexShader.hlsl", SHADER_VERTEX, SHADER_VERSION_5_0);
 	D3D12R_CreateShaderByteCode(&vertexShader);
@@ -121,7 +121,7 @@ void Framework::Run()
 	//int numDesc = 1;
 	//int numRange = 1;
 	//test->CreateRootDescriptorTable(&type, &numDesc, numRange, D3D12_SHADER_VISIBILITY_ALL);
-	weak_ptr<D3D12R_RootSignatureWrapper> params = test->GenerateRootSignature("params");
+	weak_ptr<D3D12R_RootSignatureWrapper> params = test->GenerateRootSignatureWrapper("params");
 
 
 	//unsigned int inputSizes[] = { 0,257 };

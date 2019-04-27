@@ -140,7 +140,7 @@ void D3D12R_SignatureParametersHelper::CreateRootDescriptorTable(D3D12_DESCRIPTO
 	}
 }
 
-weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::GenerateRootSignature(std::string signatureName)
+weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::GenerateRootSignatureWrapper(std::string signatureName)
 {
 	shared_ptr<D3D12R_RootSignatureWrapper> info = make_shared<D3D12R_RootSignatureWrapper>();
     info->rootSignature = D3D12R_CreateRootSignature(GetRootParameters(), GetParameterCount());

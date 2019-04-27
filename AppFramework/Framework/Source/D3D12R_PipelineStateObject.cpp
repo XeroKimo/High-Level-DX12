@@ -62,14 +62,44 @@ void D3D12R_PipelineStateObject::GenerateInputHeaps()
     {
         if (m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
             continue;
-        else if (m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_CBV ||
-                m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_SRV ||
-                m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
+        else 
         {
-            m_descriptorHeaps.push_back(nullptr);
-            m_descriptorHeaps[m_descriptorHeaps.size() - 1] = make_unique<D3D12R_DescriptorHeapWrapper>();
-            ComPtr<ID3D12Resource> resource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_ConstantBuffer, 64*1024*1024);
-            m_descriptorHeaps[m_descriptorHeaps.size() - 1]->descriptors.push_back(resource);
+			m_descriptorHeaps.push_back(nullptr);
+			m_descriptorHeaps[m_descriptorHeaps.size() - 1] = make_unique<D3D12R_DescriptorHeapWrapper>();			
+			if (m_rootSignatureParams->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+			{
+				D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+				unsigned int totalNumDescriptors = 0;
+				for (int v = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)
+					totalNumDescriptors+= m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v];
+
+				heapDesc.NumDescriptors = totalNumDescriptors;
+				heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+				heapDesc.Type = (m_rootSignatureParams->parameterInfo.get()[i].rangeType[0] != D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) 
+					? D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV : D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+				heapDesc.NodeMask = 0;
+
+				graphicsDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[m_descriptorHeaps.size() - 1]->heap));
+
+				for (int x = 0; x < totalNumDescriptors; x++)
+				{
+					for (int v = 0; v < frameBufferCount; v++)
+					{
+						ComPtr<ID3D12Resource> resource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_CBV_SRV_UAV_SAMPLER, 64 * 1024);
+						m_descriptorHeaps[m_descriptorHeaps.size() - 1]->descriptors.push_back(resource);
+					}
+				}
+			}
+
+			for (int v = 0; v < frameBufferCount; v++)
+			{
+				ComPtr<ID3D12Resource> resource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_CBV_SRV_UAV_SAMPLER, 64 * 1024);
+				m_descriptorHeaps[m_descriptorHeaps.size() - 1]->descriptors.push_back(resource);
+			}
         }
     }
 }
+
+//if (m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_CBV ||
+//	m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_SRV ||
+//	m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)

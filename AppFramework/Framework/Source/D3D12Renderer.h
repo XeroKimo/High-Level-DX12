@@ -1,33 +1,18 @@
 #pragma once
-#include <Windows.h>
-#include <wrl/client.h>
-#include <d3d12.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-#include <memory>
-#include <vector>
-#include <map>
-#include <string>
-
-#include "d3dx12.h"
+#include "D3D12R.h"
 
 #define SHADER_VERTEX "vs_"
 #define SHADER_PIXEL "ps_"
 #define SHADER_VERSION_5_0 "5_0"
 
-using Microsoft::WRL::ComPtr;
-using std::shared_ptr;
-using std::weak_ptr;
-using std::unique_ptr;
-using std::make_shared;
-using std::make_unique;
 
 enum DescriptorBufferUse
 {
-    DescriptorBufferUse_Generic = 0x01,
-    DescriptorBufferUse_ConstantBuffer,
-    DescriptorBufferUse_MultiSample
+	//When generating a descriptor, depending on it's use, it will have
+	//to have some size alignment
+    DescriptorBufferUse_Generic = 0x01,			//No alignment
+    DescriptorBufferUse_CBV_SRV_UAV_SAMPLER,	//Aligned by multiples of 64KB
+    DescriptorBufferUse_MultiSampleTexture		//Aligned by multiples of 4MB
 };
 struct D3D12R_RootSignatureWrapper;
 struct D3D12R_DescriptorHeapWrapper;
@@ -49,12 +34,12 @@ struct D3D12R_ShaderWrapper
 	}
 };
 
-struct D3D12R_DrawResource
+struct D3D12R_PrimitiveResource
 {
-	enum ResourceType
+	enum PrimitiveType
 	{
-		ResourceType_VertexBuffer = 0x01,
-		ResourceType_IndexBuffer = 0x02,
+		PrimitiveType_Vertex = 0x01,
+		PrimitiveType_Index = 0x02,
 	};
 
     union ResourceView
@@ -67,27 +52,25 @@ struct D3D12R_DrawResource
     ComPtr<ID3D12Resource> pUpload = nullptr;
 	ResourceView view;
 private:
-	ResourceType viewType;
+	PrimitiveType viewType;
 
 public:
-	D3D12R_DrawResource(ResourceType type)
+	D3D12R_PrimitiveResource(PrimitiveType type)
 	{
 		viewType = type;
 		view.vertexBuffer = nullptr;
 	}
 
-	ResourceType* GetViewType() { return &viewType; }
-	~D3D12R_DrawResource()
+	PrimitiveType GetViewType() { return viewType; }
+	~D3D12R_PrimitiveResource()
 	{
-		if (viewType == ResourceType_VertexBuffer)
+		if (viewType == PrimitiveType_Vertex)
 			delete view.vertexBuffer;
-		if (viewType == ResourceType_IndexBuffer)
+		if (viewType == PrimitiveType_Index)
 			delete view.indexBuffer;
 
 	}
 };
-
-
 
 namespace D3D12Renderer
 {
@@ -147,8 +130,8 @@ void D3D12R_WaitForPreviousFrame();
 ComPtr<ID3D12RootSignature> D3D12R_CreateRootSignature(D3D12_ROOT_PARAMETER* rootParamters, unsigned int numOfParameters);
 bool D3D12R_CreateShaderByteCode(D3D12R_ShaderWrapper* shader);
 ComPtr<ID3D12PipelineState> D3D12R_CreatePipelineState(ID3D12RootSignature* rootSignature, D3D12_INPUT_ELEMENT_DESC* inputLayout, unsigned int numOfElements, D3D12R_ShaderWrapper** arrayOfShaders, unsigned int numOfShaders);
-unique_ptr<D3D12R_DrawResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
-unique_ptr<D3D12R_DrawResource> D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
+unique_ptr<D3D12R_PrimitiveResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
+unique_ptr<D3D12R_PrimitiveResource> D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
 ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON, LPCWSTR bufferName = nullptr);
 
 //void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes);

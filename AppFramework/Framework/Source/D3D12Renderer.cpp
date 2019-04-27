@@ -98,7 +98,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	swapChainDesc.BufferCount = frameBufferCount; // number of buffers we have
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
 
-	IDXGISwapChain1* tempSwapChain = nullptr;
+	ComPtr<IDXGISwapChain1> tempSwapChain = nullptr;
 
 	dxgiFactory->CreateSwapChainForHwnd(
 		commandQueue.Get(),
@@ -109,7 +109,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 		&tempSwapChain
 	);
 
-	swapChain = static_cast<IDXGISwapChain3*>(tempSwapChain);
+	tempSwapChain.As(&swapChain);
 	frameIndex = swapChain->GetCurrentBackBufferIndex();
 
 #pragma endregion
@@ -449,9 +449,9 @@ ComPtr<ID3D12PipelineState>  D3D12R_CreatePipelineState(ID3D12RootSignature* roo
 	return pipelineState;
 }
 
-unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
+unique_ptr<D3D12R_PrimitiveResource>  D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex)
 {
-	unique_ptr<D3D12R_DrawResource> vertexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_VertexBuffer);
+	unique_ptr<D3D12R_PrimitiveResource> vertexBuffer = make_unique<D3D12R_PrimitiveResource>(D3D12R_PrimitiveResource::PrimitiveType_Vertex);
 
 	int vBufferSize = sizeOfVertex * vertexCount;
 
@@ -488,9 +488,9 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateVertexBuffer(void* vertices, unsig
 	return vertexBuffer;
 }
 //
-unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
+unique_ptr<D3D12R_PrimitiveResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount)
 {
-	std::unique_ptr <D3D12R_DrawResource> indexBuffer = make_unique<D3D12R_DrawResource>(D3D12R_DrawResource::ResourceType_IndexBuffer);
+	std::unique_ptr <D3D12R_PrimitiveResource> indexBuffer = make_unique<D3D12R_PrimitiveResource>(D3D12R_PrimitiveResource::PrimitiveType_Index);
 	unsigned int bufferSize = sizeof(DWORD) * indexCount;
 
     indexBuffer->pResource = D3D12R_CreateDescriptor(D3D12_HEAP_TYPE_DEFAULT, DescriptorBufferUse_Generic, bufferSize, D3D12_RESOURCE_STATE_COPY_DEST, L"Index Buffer Resource Heap");
@@ -537,9 +537,9 @@ unique_ptr<D3D12R_DrawResource>  D3D12R_CreateIndexBuffer(DWORD* indices, DWORD 
 ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState, LPCWSTR bufferName)
 {
     unsigned int bSize = bufferSize;
-    if (bufferUse == DescriptorBufferUse_ConstantBuffer)
+    if (bufferUse == DescriptorBufferUse_CBV_SRV_UAV_SAMPLER)
         bSize = (bSize + (1024 * 64)) & ~(1024 * 64);
-    else if (bufferUse == DescriptorBufferUse_MultiSample)
+    else if (bufferUse == DescriptorBufferUse_MultiSampleTexture)
         bSize = (bSize + (1024 * 1024 * 4)) & ~(1024 * 1024 * 4);
 
     ComPtr<ID3D12Resource> resource;
