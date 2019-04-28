@@ -232,8 +232,6 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 #pragma endregion
 
-	dxgiFactory->Release();
-
 	return true;
 }
 
@@ -257,7 +255,7 @@ void D3D12R_Shutdown()
 	{
 		//renderTargets[i].Reset();
 		commandAllocators[i].Reset();
-		fence[i].Reset();
+		//fence[i].Reset();
 	};
 
     ownedRootSignatureParams.clear();
