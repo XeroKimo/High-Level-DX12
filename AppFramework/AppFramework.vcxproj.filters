@@ -30,6 +30,9 @@
     <ClCompile Include="Framework\Source\D3D12R_PipelineStateObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Framework\Source\D3D12R_Device.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Source\stdafx.h">
@@ -60,6 +63,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Framework\Source\D3D12R_DescriptorHeapWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Source\D3D12R_Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
