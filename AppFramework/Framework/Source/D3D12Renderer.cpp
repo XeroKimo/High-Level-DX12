@@ -29,7 +29,6 @@ namespace D3D12Renderer
 	ComPtr<ID3D12RootSignature> defaultSignature;
 
 	std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
-	std::map<std::string, ComPtr<ID3D12RootSignature>> ownedRootSignatures;
 }
 
 using namespace D3D12Renderer;
@@ -262,7 +261,6 @@ void D3D12R_Shutdown()
 	};
 
     ownedRootSignatureParams.clear();
-    ownedRootSignatures.clear();
 }
 
 void D3D12R_BeginRender()
