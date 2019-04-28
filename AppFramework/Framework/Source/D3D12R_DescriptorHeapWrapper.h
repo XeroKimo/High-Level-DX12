@@ -13,8 +13,8 @@ struct D3D12R_DescriptorHeapWrapper
 
     ~D3D12R_DescriptorHeapWrapper()
     {
-        heap->Release();
+        heap.ReleaseAndGetAddressOf();
         for (int i = 0; i < descriptors.size(); i++)
-            descriptors[i]->Release();
+            descriptors[i].ReleaseAndGetAddressOf();
     }
 };

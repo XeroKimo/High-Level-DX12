@@ -117,6 +117,7 @@ void Framework::Run()
 
 	unique_ptr<D3D12R_SignatureParametersHelper> test = make_unique<D3D12R_SignatureParametersHelper>();
 	test->CreateRootConstant(4, D3D12_SHADER_VISIBILITY_ALL);
+	//test->CreateRootDescriptor(D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_ALL);
 	//D3D12_DESCRIPTOR_RANGE_TYPE type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	//int numDesc = 1;
 	//int numRange = 1;
@@ -124,10 +125,15 @@ void Framework::Run()
 	weak_ptr<D3D12R_RootSignatureWrapper> params = test->GenerateRootSignatureWrapper("params");
 
 
+
+
 	//unsigned int inputSizes[] = { 0,257 };
 	////D3D12R_GenerateUniqueRSPResources(testParams, &inputSizes[0]);
 
 	ComPtr<ID3D12PipelineState> pipelineState = D3D12R_CreatePipelineState(params.lock()->rootSignature.Get(), inputLayout, 2 ,shaders,2);
+	unsigned int sizes[1] = { sizeof(float) * 4 };
+	//unique_ptr<D3D12R_PipelineStateObject> pipelineStateObj = make_unique<D3D12R_PipelineStateObject>(pipelineState,params,&sizes[0]);
+	//int uniqueID = pipelineStateObj->GenerateUniqueInputID();
 
 	float color[4] = { 0.0f,1.0f,0.0f,0.0f };
 
@@ -152,10 +158,12 @@ void Framework::Run()
         }
 		else
 		{
+			//pipelineStateObj->UpdateConstBuffer(uniqueID, 0, &color);
 			D3D12R_BeginRender();
 #pragma region D3D12 Render Testing
 
 			D3D12R_UsingPipeline(pipelineState.Get(), params.lock()->rootSignature.Get());
+			//pipelineStateObj->SetForRender();
 			D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues , & color[0], 0);
 
 			D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);

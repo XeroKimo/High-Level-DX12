@@ -19,21 +19,6 @@ struct D3D12R_RSPInfo
 	}
 };
 
-struct D3D12R_RSPInput
-{
-	unsigned int inputSize;
-	unsigned int bufferOffset;
-
-	void AlignBuffer()
-	{
-		bufferOffset = (inputSize + 255) & ~255;
-	}
-	~D3D12R_RSPInput()
-	{
-
-	}
-};
-
 struct D3D12R_RootSignatureWrapper
 {
     ComPtr<ID3D12RootSignature> rootSignature;

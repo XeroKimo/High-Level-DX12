@@ -37,14 +37,14 @@ using namespace D3D12Renderer;
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 {
 	HRESULT hr;	// TODO: Delete all hr stuff when we know it works
-	IDXGIFactory4* dxgiFactory;
+	ComPtr<IDXGIFactory4> dxgiFactory;
 	hr = CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 	if (FAILED(hr))
 		return false;
 
 #pragma region Graphics Device Creation
 
-	IDXGIAdapter1* adapter;
+	ComPtr<IDXGIAdapter1> adapter;
 	UINT adapterIndex = 0;
 	bool adapterFound = false;
 
@@ -61,7 +61,7 @@ bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 		}
 
 		// Find a D3D12 compatible device ( minimum feature level for D3D12 is feature level 11_0 )
-		hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&graphicsDevice));
+		hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&graphicsDevice));
 		if (SUCCEEDED(hr))
 		{
 			adapterFound = true;
@@ -534,6 +534,7 @@ unique_ptr<D3D12R_PrimitiveResource>  D3D12R_CreateIndexBuffer(DWORD* indices, D
 
 	return indexBuffer;
 }
+
 ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState, LPCWSTR bufferName)
 {
     unsigned int bSize = bufferSize;
@@ -553,34 +554,3 @@ ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, Descrip
 
     return resource;
 }
-//
-//void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes)
-//{
-//	for (int i = 0; i < rootSignatureParams->parameterCount; i++)
-//	{
-//		if (rootSignatureParams->parameterInfo[i].parameterType != D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
-//			rootSignatureParams->parameterInfo[i].parameterType != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-//		{
-//			for (int v = 0; v < frameBufferCount; v++)
-//			{
-//				ID3D12Resource* uploadBuffer[frameBufferCount];
-//				graphicsDevice->CreateCommittedResource(
-//					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
-//					D3D12_HEAP_FLAG_NONE, // no flags
-//					&CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
-//					D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
-//					nullptr, // we do not have use an optimized clear value for constant buffers
-//					IID_PPV_ARGS(&uploadBuffer[v]));
-//
-//				UINT8* bufferAddress[frameBufferCount];
-//
-//				CD3DX12_RANGE readRange(0, 0);
-//				uploadBuffer[v]->Map(0, &readRange, reinterpret_cast<void**>(&bufferAddress[i]));
-//
-//				int allignment = (inputDataSizes[i] + 255) & ~255;
-//				int f = 0;
-//			}
-//		}
-//	}
-//}
-
