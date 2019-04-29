@@ -186,7 +186,7 @@ weak_ptr<D3D12R_RootSignatureWrapper> D3D12R_SignatureParametersHelper::Generate
 		}
 	}
 
-	ownedRootSignatureParams[signatureName] = info;
+	ownedRootSignatures[signatureName] = info;
 
 	return info;
 }

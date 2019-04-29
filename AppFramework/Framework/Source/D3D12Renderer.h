@@ -96,9 +96,9 @@ namespace D3D12Renderer
 	extern unsigned int frameIndex;														// The current buffer we are currently on
 	extern int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
 
-	extern ComPtr<ID3D12RootSignature> defaultSignature;
+	extern ComPtr<ID3D12RootSignature> defaultSignature;		//A default root signature with no params
 
-	extern std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatureParams;
+	extern std::map<std::string, shared_ptr<D3D12R_RootSignatureWrapper>> ownedRootSignatures;	//A map of root signatures to reuse
 }
 
 bool D3D12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
@@ -133,8 +133,6 @@ ComPtr<ID3D12PipelineState> D3D12R_CreatePipelineState(ID3D12RootSignature* root
 unique_ptr<D3D12R_PrimitiveResource> D3D12R_CreateVertexBuffer(void* vertices, unsigned int vertexCount, unsigned int sizeOfVertex);
 unique_ptr<D3D12R_PrimitiveResource> D3D12R_CreateIndexBuffer(DWORD* indices, DWORD indexCount);
 ComPtr<ID3D12Resource> D3D12R_CreateDescriptor(D3D12_HEAP_TYPE heapType, DescriptorBufferUse bufferUse, unsigned int bufferSize, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_COMMON, LPCWSTR bufferName = nullptr);
-
-//void D3D12R_GenerateUniqueRSPResources(const D3D12R_RSP* rootSignatureParams, unsigned int* inputDataSizes);
 
 #pragma endregion
 

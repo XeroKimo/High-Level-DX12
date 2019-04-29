@@ -27,7 +27,7 @@ bool D3D12R_Device::Initialize(D3D_FEATURE_LEVEL featureLevel)
 		if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), featureLevel, IID_PPV_ARGS(&m_device))))
 		{
 			m_activeVRAM = 0;
-			m_totalVRAM = desc.DedicatedVideoMemory;
+			m_totalVRAM = static_cast<UINT>(desc.DedicatedVideoMemory);
 			return true;
 		}
 	}

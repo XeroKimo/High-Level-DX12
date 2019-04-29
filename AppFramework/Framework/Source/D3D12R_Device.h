@@ -6,9 +6,8 @@ class D3D12R_Device
 {
 public:
 	D3D12R_Device();
-	bool Initialize(D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0);
 
-	ComPtr<ID3D12Resource> CreateDescriptor();
+	bool Initialize(D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0);
 
 private:
 	ComPtr<ID3D12Device> m_device;

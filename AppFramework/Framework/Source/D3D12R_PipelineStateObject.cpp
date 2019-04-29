@@ -2,13 +2,13 @@
 
 using namespace D3D12Renderer;
 
-D3D12R_PipelineStateObject::D3D12R_PipelineStateObject(ComPtr<ID3D12PipelineState> pipeline, weak_ptr<D3D12R_RootSignatureWrapper> rootSignature, unsigned int* constBufferSizes)
+D3D12R_PipelineStateObject::D3D12R_PipelineStateObject(ComPtr<ID3D12PipelineState> pipeline, weak_ptr<D3D12R_RootSignatureWrapper> rootSignature, UINT* constBufferSizes)
 {
 	m_pipelineState = pipeline;
 	m_rootSignatureParams = rootSignature.lock();
     m_uniqueIDCount = 0;
 	int constBufferCount = 0;
-	for (unsigned int i = 0; i < m_rootSignatureParams->parameterCount; i++)
+	for (UINT i = 0; i < m_rootSignatureParams->parameterCount; i++)
 	{
 		if (m_rootSignatureParams->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
 		{
@@ -19,11 +19,11 @@ D3D12R_PipelineStateObject::D3D12R_PipelineStateObject(ComPtr<ID3D12PipelineStat
 		}
 		else if (m_rootSignatureParams->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 		{
-			for (int v = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)
+			for (UINT v = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)
 			{
 				if (m_rootSignatureParams->parameterInfo.get()[i].rangeType[v] == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
 				{
-					for (int x = 0; x < m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v]; x++)
+					for (UINT x = 0; x < m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v]; x++)
 					{
 						m_cbInputs.push_back(nullptr);
 						m_cbInputs[i + x] = make_unique<RSPConstBufferInput>();
@@ -46,12 +46,17 @@ D3D12R_PipelineStateObject::~D3D12R_PipelineStateObject()
 	m_rootSignatureParams.reset();
 }
 
-void D3D12R_PipelineStateObject::UpdateConstBuffer(unsigned int uniqueID, unsigned int descriptorID, void * data)
+void D3D12R_PipelineStateObject::Set32BitConstants(UINT RootParameterIndex, UINT Num32BitValuesToSet, const void* pSrcData, UINT DestOffsetIn32BitValues)
+{
+	commandList->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData, DestOffsetIn32BitValues);
+}
+
+void D3D12R_PipelineStateObject::UpdateConstBuffer(UINT uniqueID, UINT descriptorID, void * data)
 {
     memcpy(m_cbInputs[descriptorID]->GPUAddress[frameIndex] + uniqueID * m_cbInputs[descriptorID]->bufferOffset, data, m_cbInputs[descriptorID]->inputSize);
 }
 
-void D3D12R_PipelineStateObject::SetupInputs(unsigned int* size, int countOfConstBuffers)
+void D3D12R_PipelineStateObject::SetupInputs(UINT* size, int countOfConstBuffers)
 {
     for (int i = 0; i < countOfConstBuffers; i++)
     {
@@ -65,9 +70,9 @@ void D3D12R_PipelineStateObject::SetForRender()
 	D3D12R_UsingPipeline(m_pipelineState.Get(), m_rootSignatureParams->rootSignature.Get());
 }
 
-void D3D12R_PipelineStateObject::Render(unsigned int uniqueID)
+void D3D12R_PipelineStateObject::Render(UINT uniqueID)
 {
-	for (int i = 0; i < m_rootSignatureParams->parameterCount; i++)
+	for (UINT i = 0; i < m_rootSignatureParams->parameterCount; i++)
 	{
 		if (m_rootSignatureParams->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 			commandList->SetGraphicsRootDescriptorTable(i, m_descriptorHeaps[i]->heap->GetGPUDescriptorHandleForHeapStart());
@@ -80,16 +85,16 @@ void D3D12R_PipelineStateObject::Render(unsigned int uniqueID)
 	}
 }
 
-unsigned int D3D12R_PipelineStateObject::GenerateUniqueInputID()
+UINT D3D12R_PipelineStateObject::GenerateUniqueInputID()
 {
-    unsigned int ID = m_uniqueIDCount;
+    UINT ID = m_uniqueIDCount;
     m_uniqueIDCount++;
     return ID;
 }
 
 void D3D12R_PipelineStateObject::GenerateInputHeaps()
 {
-    for (unsigned int i = 0, notHeapCounter = 0; i < m_rootSignatureParams->parameterCount; i++)
+    for (UINT i = 0, notHeapCounter = 0; i < m_rootSignatureParams->parameterCount; i++)
     {
         if (m_rootSignatureParams.get()->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
             continue;
@@ -101,12 +106,11 @@ void D3D12R_PipelineStateObject::GenerateInputHeaps()
 			if (m_rootSignatureParams->parameterInfo.get()[i].parameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
 			{
 				D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-				unsigned int totalNumDescriptors = 0;
-				for (int v = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)
+				UINT totalNumDescriptors = 0;
+				for (UINT v = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)
 				{
 					totalNumDescriptors += m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v];
 				}
-
 				heapDesc.NumDescriptors = totalNumDescriptors;
 				heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 				heapDesc.Type = (m_rootSignatureParams->parameterInfo.get()[i].rangeType[0] != D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) 
@@ -115,7 +119,7 @@ void D3D12R_PipelineStateObject::GenerateInputHeaps()
 
 				graphicsDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[m_descriptorHeaps.size() - 1]->heap));
 
-				for (int v = 0, y=0; v < totalNumDescriptors; v++)
+				for (UINT v = 0, y=0; v < totalNumDescriptors; v++)
 				{
 					for (int x = 0; x < frameBufferCount; x++)
 					{
@@ -125,11 +129,11 @@ void D3D12R_PipelineStateObject::GenerateInputHeaps()
 				}
 
 				int descOffset = 0;
-				for (int v = 0, inHeapCounter = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)	//loop for every descriptor range
+				for (UINT v = 0, inHeapCounter = 0; v < m_rootSignatureParams->parameterInfo.get()[i].numberOfValues; v++)	//loop for every descriptor range
 				{
 					if (m_rootSignatureParams->parameterInfo.get()[i].rangeType[v] == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)	//if range == cbv
 					{
-						for (int z = 0; z < m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v] && inHeapCounter < m_cbInputs.size(); inHeapCounter++)	//loop until we filled up all the cbv
+						for (UINT z = 0; z < m_rootSignatureParams->parameterInfo.get()[i].numberOfDescriptor[v] && inHeapCounter < m_cbInputs.size(); inHeapCounter++)	//loop until we filled up all the cbv
 						{
 							if (m_cbInputs[inHeapCounter]->inHeap == true)
 							{

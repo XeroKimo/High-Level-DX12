@@ -116,8 +116,8 @@ void Framework::Run()
 
 
 	unique_ptr<D3D12R_SignatureParametersHelper> test = make_unique<D3D12R_SignatureParametersHelper>();
-	//test->CreateRootConstant(4, D3D12_SHADER_VISIBILITY_ALL);
-	test->CreateRootDescriptor(D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_ALL);
+	test->CreateRootConstant(4, D3D12_SHADER_VISIBILITY_ALL);
+	//test->CreateRootDescriptor(D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_ALL);
 	//D3D12_DESCRIPTOR_RANGE_TYPE type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	//int numDesc = 1;
 	//int numRange = 1;
@@ -136,7 +136,8 @@ void Framework::Run()
 	int uniqueID = pipelineStateObj->GenerateUniqueInputID();
 
 	float color[4] = { 0.0f,1.0f,0.0f,0.0f };
-
+	D3D12R_UsingPipeline(pipelineState.Get(), params.lock()->rootSignature.Get());
+	D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues, &color[0], 0);
 	D3D12R_DispatchCommandList();
 
 #pragma endregion
@@ -157,14 +158,14 @@ void Framework::Run()
         }
 		else
 		{
-			pipelineStateObj->UpdateConstBuffer(uniqueID, 0, &color);
+			//pipelineStateObj->UpdateConstBuffer(uniqueID, 0, &color);
 			D3D12R_BeginRender();
 #pragma region D3D12 Render Testing
 
-			//D3D12R_UsingPipeline(pipelineState.Get(), params.lock()->rootSignature.Get());
-			pipelineStateObj->SetForRender();
-			pipelineStateObj->Render(uniqueID);
-			//D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues , & color[0], 0);
+			//pipelineStateObj->SetForRender();
+			//pipelineStateObj->Render(uniqueID);
+			D3D12R_UsingPipeline(pipelineState.Get(), params.lock()->rootSignature.Get());
+			D3D12Renderer::commandList->SetGraphicsRoot32BitConstants(0, params.lock().get()[0].parameterInfo.get()->numberOfValues -1 , & color[0], 1);
 
 			D3D12R_UsingVertexBuffer(0, 1, vbufferView->view.vertexBuffer);
 			D3D12R_UsingIndexBuffer(iBufferView->view.indexBuffer);
