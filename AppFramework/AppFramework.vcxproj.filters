@@ -15,62 +15,70 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Framework\Source\Main.cpp">
+    <ClCompile Include="Source\DX12\Objects\DX12R_Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Framework\Source\Framework.cpp">
+    <ClCompile Include="Source\Framework.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Framework\Source\D3D12Renderer.cpp">
+    <ClCompile Include="Source\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Framework\Source\D3D12R_SignatureParametersHelper.cpp">
+    <ClCompile Include="Source\DX12\Objects\DX12R_SwapChain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Framework\Source\D3D12R_PipelineStateObject.cpp">
+    <ClCompile Include="Source\DX12\Objects\DX12R_CommandQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Framework\Source\D3D12R_Device.cpp">
+    <ClCompile Include="Source\DX12\Objects\DX12R_CommandAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DX12\DX12R_Interface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DX12\Objects\DX12R_CommandList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DX12\Helpers\DX12R_GlobalFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Framework\Source\stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Framework\Source\FrameworkDefaults.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\Framework.h">
+    <ClInclude Include="Header\DX12\Objects\DX12R_Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12Renderer.h">
+    <ClInclude Include="Header\DX12\Helpers\DX12R_GlobalFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\d3dx12.h">
+    <ClInclude Include="Header\DX12\DX12R.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_SignatureParametersHelper.h">
+    <ClInclude Include="Header\DX12\d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_PipelineStateObject.h">
+    <ClInclude Include="Header\DX12\DX12R_Interface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R.h">
+    <ClInclude Include="Header\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_RootSignatureWrapper.h">
+    <ClInclude Include="Header\Framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_DescriptorHeapWrapper.h">
+    <ClInclude Include="Header\DX12\Objects\DX12R_SwapChain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Framework\Source\D3D12R_Device.h">
+    <ClInclude Include="Header\DX12\Objects\DX12R_CommandQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Framework\Source\VertexShader.hlsl" />
-    <FxCompile Include="Framework\Source\PixelShader.hlsl" />
+    <ClInclude Include="Header\DX12\Objects\DX12R_CommandAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Objects\DX12R_CommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

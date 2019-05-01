@@ -1,9 +1,5 @@
 #pragma once
 
-#ifndef DDEBUG
-#define DDEBUG
-#endif // !DDEBUG
-
 #include <Windows.h>
 #include <wrl/client.h>
 #include <d3d12.h>
@@ -12,6 +8,7 @@
 #include <DirectXMath.h>
 
 #include <memory>
+#include <array>
 #include <vector>
 #include <map>
 #include <string>
@@ -25,9 +22,12 @@ using std::unique_ptr;
 using std::make_shared;
 using std::make_unique;
 
-#include "D3D12Renderer.h"
-#include "D3D12R_SignatureParametersHelper.h"
-#include "D3D12R_RootSignatureWrapper.h"
-#include "D3D12R_PipelineStateObject.h"
-#include "D3D12R_DescriptorHeapWrapper.h"
+#include "Helpers/DX12R_GlobalFunctions.h"
 
+#include "Objects/DX12R_CommandAllocator.h"
+#include "Objects/DX12R_CommandList.h"
+#include "Objects/DX12R_CommandQueue.h"
+#include "Objects/DX12R_Device.h"
+#include "Objects/DX12R_SwapChain.h"
+
+#include "DX12R_Interface.h"
