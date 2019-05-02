@@ -1,4 +1,4 @@
-#include "DX12/DX12R.h"
+#include "DX12/Helpers/DX12R_GlobalFunctions.h"
 
 using namespace DX12Interface;
 //using namespace D3D12Renderer;
@@ -25,7 +25,7 @@ void DX12R_BeginRender()
 	rtvHandle.Offset(frameIndex, dxrSwapChain->GetRTVDescriptorSize());
 	const float clearColor[] = { 0.0f,0.2f,0.4f,1.0f };
 
-	dxrCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dxrSwapChain->GetFrameBuffer(frameIndex).Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+	dxrCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dxrSwapChain->GetFrameBufferResource(frameIndex).Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 	dxrCommandList->OMSetRenderTargets(1, &rtvHandle,FALSE,nullptr);
 	dxrCommandList->ClearRenderTargetView(rtvHandle, clearColor,0,nullptr);
 	dxrCommandList->RSSetScissorRects(1, &scissorRect);
@@ -34,7 +34,7 @@ void DX12R_BeginRender()
 
 void DX12R_EndRender()
 {
-	dxrCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dxrSwapChain->GetFrameBuffer(frameIndex).Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	dxrCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dxrSwapChain->GetFrameBufferResource(frameIndex).Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	dxrCommandList->Close();
 
 	ID3D12CommandList* ppCommandList[] = { dxrCommandList->GetCommandList().Get() };
@@ -42,4 +42,9 @@ void DX12R_EndRender()
 	dxrCommandQueue->Signal(fence.Get(), fenceValue);
 
 	dxrSwapChain->Present(0, 0);
+}
+
+DX12R_SwapChain* GetSwapChain()
+{
+	return dxrSwapChain.get();
 }

@@ -1,8 +1,5 @@
 #pragma once
-#include "DX12R.h"
-#define SHADER_VERTEX "vs_"
-#define SHADER_PIXEL "ps_"
-#define SHADER_VERSION_5_0 "5_0"
+#include "DirectX12.h"
 
 class DX12R_CommandAllocator;
 class DX12R_CommandList;
@@ -15,7 +12,7 @@ namespace DX12Interface
 	extern const int frameBufferCount;
 	extern const int threadCount;
 
-	extern unique_ptr<DX12R_Device> dxrDevice;
+	extern shared_ptr<DX12R_Device> dxrDevice;
 	extern unique_ptr<DX12R_CommandQueue> dxrCommandQueue;									// Responsible for sending command lists to the device for execution
 	extern unique_ptr<DX12R_SwapChain> dxrSwapChain;										// Swap chain used to switch between render targets
 	extern unique_ptr<DX12R_CommandAllocator> dxrCommandAllocator[];
@@ -29,7 +26,6 @@ namespace DX12Interface
 	extern D3D12_RECT scissorRect;														// How much of the viewport we will see when rendering
 
 	extern unsigned int frameIndex;														// The current buffer we are currently on
-	extern int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
 
 	extern ComPtr<ID3D12RootSignature> defaultSignature;		//A default root signature with no params
 }

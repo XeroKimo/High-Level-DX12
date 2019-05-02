@@ -1,11 +1,11 @@
 #pragma once
-#include "DX12/DX12R.h"
+#include "DX12/DirectX12.h"
 
 class DX12R_Device;
 class DX12R_CommandQueue;
 class DX12R_CommandAllocator;
 
-class DX12R_CommandList
+class DX12R_CommandList : std::enable_shared_from_this<DX12R_CommandList>
 {
 public:
 	DX12R_CommandList();
@@ -28,6 +28,7 @@ public:
 
 	//General use
 	HRESULT Close();
+	void CloseForSubmit();
 	HRESULT Reset(ID3D12CommandAllocator* commmandAllocator, ID3D12PipelineState* pipelineState = nullptr);
 	HRESULT Reset(weak_ptr<DX12R_CommandAllocator> commandAllocator, ID3D12PipelineState* pipelineState = nullptr);
 
@@ -36,8 +37,10 @@ public:
 
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList();
 
+	weak_ptr<DX12R_CommandAllocator> GetCommandAllocator();
+
 private:
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
-	shared_ptr<DX12R_CommandQueue> m_commandQueue;
+	weak_ptr<DX12R_CommandQueue> m_commandQueue;
 	shared_ptr<DX12R_CommandAllocator> m_commandAllocator;
 };

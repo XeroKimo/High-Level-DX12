@@ -1,4 +1,5 @@
 #include "DX12/Objects/DX12R_Device.h"
+#include "DX12R.h"
 
 DX12R_Device::DX12R_Device()
 {
@@ -65,6 +66,44 @@ bool DX12R_Device::Initialize(UINT adapterIndex, D3D_FEATURE_LEVEL featureLevel)
 		return true;
 	}
 	return false;
+}
+
+bool DX12R_Device::CreateCommandList(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator, const IID& riid, void** ppCommandList)
+{
+	if (FAILED(m_device->CreateCommandList(m_nodeMask, type, commandAllocator, nullptr, riid, ppCommandList)))
+		return false;
+	return true;
+}
+
+bool DX12R_Device::CreateCommandQueue(D3D12_COMMAND_QUEUE_DESC* description, const IID& iid, void** commandQueue)
+{
+	if (FAILED(m_device->CreateCommandQueue(description, iid, commandQueue)))
+		return false;
+	return true;
+}
+
+bool DX12R_Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, const IID& iid, void** commandAllocator)
+{
+	if (FAILED(m_device->CreateCommandAllocator(type,iid, commandAllocator)))
+		return false;
+	return true;
+}
+
+bool DX12R_Device::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC* description, const IID& iid, void** heap)
+{
+	if (FAILED(m_device->CreateDescriptorHeap(description, iid, heap)))
+		return false;
+	return true;
+}
+
+void DX12R_Device::CreateRenderTargetView(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+	m_device->CreateRenderTargetView(resource, description, handle);
+}
+
+UINT DX12R_Device::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)
+{
+	return m_device->GetDescriptorHandleIncrementSize(type);
 }
 
 ComPtr<ID3D12Device> DX12R_Device::GetDevice()

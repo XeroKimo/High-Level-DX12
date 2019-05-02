@@ -10,7 +10,7 @@
 
 #include <Windows.h>
 
-#include "DX12/DX12R.h"
+#include "DX12R.h"
 
 #include <string.h>
 #include <memory>

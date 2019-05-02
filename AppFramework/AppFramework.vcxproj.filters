@@ -42,6 +42,9 @@
     <ClCompile Include="Source\DX12\Helpers\DX12R_GlobalFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DX12\Objects\DX12R_FrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Source\FrameworkDefaults.h">
@@ -51,9 +54,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\DX12\Helpers\DX12R_GlobalFunctions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Header\DX12\DX12R.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\DX12\d3dx12.h">
@@ -78,6 +78,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\DX12\Objects\DX12R_CommandList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Objects\DX12R_FrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12R.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\DirectX12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,5 @@
 #include "DX12/Objects/DX12R_CommandList.h"
+#include "DX12R.h"
 
 DX12R_CommandList::DX12R_CommandList()
 {
@@ -12,6 +13,15 @@ bool DX12R_CommandList::Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE
 
 	Close();
 
+	return true;
+}
+
+bool DX12R_CommandList::Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, weak_ptr<DX12R_CommandAllocator> commandAllocator, weak_ptr<DX12R_CommandQueue> commandQueue)
+{
+	m_commandAllocator = commandAllocator.lock();
+	m_commandQueue = commandQueue;
+	if (!device.lock()->CreateCommandList(type, m_commandAllocator->GetAllocator().Get(), IID_PPV_ARGS(&m_commandList)))
+		return false;
 	return true;
 }
 
@@ -67,13 +77,26 @@ void DX12R_CommandList::SetGraphicsDescriptorTable(UINT rootParamIndex, D3D12_GP
 
 HRESULT DX12R_CommandList::Close()
 {
-	//tell command queue to put in close state
+	//m_commandQueue->CloseList(make_shared<DX12R_CommandList>(this));//tell command queue to put in close state
 	return m_commandList->Close();
+}
+
+void DX12R_CommandList::CloseForSubmit()
+{
+	Close();
+	m_commandQueue.lock()->CloseList(shared_from_this());
 }
 
 HRESULT DX12R_CommandList::Reset(ID3D12CommandAllocator* commmandAllocator, ID3D12PipelineState* pipelineState)
 {
 	return m_commandList->Reset(commmandAllocator, pipelineState);
+}
+
+HRESULT DX12R_CommandList::Reset(weak_ptr<DX12R_CommandAllocator> commandAllocator, ID3D12PipelineState* pipelineState)
+{
+	m_commandAllocator = commandAllocator.lock();
+
+	return m_commandList->Reset(m_commandAllocator->GetAllocator().Get(), pipelineState);;
 }
 
 void DX12R_CommandList::SetPipelineState(ID3D12PipelineState* pipelineState)
@@ -89,4 +112,9 @@ void DX12R_CommandList::ResourceBarrier(int numBarraiers, const  D3D12_RESOURCE_
 ComPtr<ID3D12GraphicsCommandList> DX12R_CommandList::GetCommandList()
 {
 	return m_commandList;
+}
+
+weak_ptr<DX12R_CommandAllocator> DX12R_CommandList::GetCommandAllocator()
+{
+	return m_commandAllocator;
 }

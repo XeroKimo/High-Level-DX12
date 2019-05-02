@@ -1,11 +1,12 @@
 #include "DX12/DX12R_Interface.h"
+#include "DX12R.h"
 
 namespace DX12Interface
 {
 	extern const int frameBufferCount = 2;
 	extern const int threadCount = 1;
 
-	unique_ptr<DX12R_Device> dxrDevice;
+	shared_ptr<DX12R_Device> dxrDevice;
 	unique_ptr<DX12R_CommandQueue> dxrCommandQueue;								// Responsible for sending command lists to the device for execution
 	unique_ptr<DX12R_SwapChain> dxrSwapChain;									// Swap chain used to switch between render targets
 	unique_ptr<DX12R_CommandAllocator> dxrCommandAllocator[frameBufferCount * threadCount];
@@ -19,7 +20,6 @@ namespace DX12Interface
 	D3D12_RECT scissorRect;														// How much of the viewport we will see when rendering
 
 	unsigned int frameIndex;													// The current buffer we are currently on
-	int rtvDescriptorSize;														// The size of the rtvDescriptorHeap on the device
 
 	ComPtr<ID3D12RootSignature> defaultSignature;
 }
@@ -32,14 +32,14 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 //Graphics Device Creation
 
-	dxrDevice = make_unique<DX12R_Device>();
+	dxrDevice = make_shared<DX12R_Device>();
 	if (!dxrDevice->Initialize())
 		return false;
 	ComPtr<ID3D12Device> device = dxrDevice->GetDevice();
 
 //Command Queue Creation
 	dxrCommandQueue = make_unique<DX12R_CommandQueue>();
-	dxrCommandQueue->Initialize(device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
+	dxrCommandQueue->Initialize(dxrDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	ComPtr<ID3D12CommandQueue> commandQueue = dxrCommandQueue->GetQueue();
 	
 //Swap Chain Creation
@@ -57,7 +57,7 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
 
 	dxrSwapChain = make_unique<DX12R_SwapChain>();
-	dxrSwapChain->Initialize(device.Get(), commandQueue.Get(), windowHandle, &swapChainDesc);
+	dxrSwapChain->Initialize(dxrDevice.get(), commandQueue.Get(), windowHandle, &swapChainDesc);
 	
 //Command Allocators & Command List Creation
 	for (int i = 0; i < frameBufferCount; i++)
