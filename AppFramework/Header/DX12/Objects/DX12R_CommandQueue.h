@@ -5,11 +5,10 @@ class DX12R_Device;
 class DX12R_CommandList;
 class DX12R_CommandAllocator;
 
-class DX12R_CommandQueue : std::enable_shared_from_this<DX12R_CommandQueue>
+class DX12R_CommandQueue : public std::enable_shared_from_this<DX12R_CommandQueue>
 {
 public:
 	DX12R_CommandQueue();
-	bool Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE);
 	bool Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL, D3D12_COMMAND_QUEUE_FLAGS flags = D3D12_COMMAND_QUEUE_FLAG_NONE);
 
 	void EnlistAllocator(weak_ptr<DX12R_CommandAllocator> allocator);

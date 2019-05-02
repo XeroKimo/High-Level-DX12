@@ -4,11 +4,10 @@
 class DX12R_CommandQueue;
 class DX12R_Device;
 
-class DX12R_CommandAllocator : std::enable_shared_from_this<DX12R_CommandAllocator>
+class DX12R_CommandAllocator :public  std::enable_shared_from_this<DX12R_CommandAllocator>
 {
 public:
 	DX12R_CommandAllocator();
-	bool Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
 	bool Initialize(DX12R_Device* device, D3D12_COMMAND_LIST_TYPE type, weak_ptr<DX12R_CommandQueue> queue);
 
 	void ReEnlist();

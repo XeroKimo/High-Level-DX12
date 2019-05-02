@@ -7,10 +7,8 @@ namespace DX12Interface
 	extern const int threadCount = 1;
 
 	shared_ptr<DX12R_Device> dxrDevice;
-	unique_ptr<DX12R_CommandQueue> dxrCommandQueue;								// Responsible for sending command lists to the device for execution
+	shared_ptr<DX12R_CommandQueue> dxrCommandQueue;								// Responsible for sending command lists to the device for execution
 	unique_ptr<DX12R_SwapChain> dxrSwapChain;									// Swap chain used to switch between render targets
-	unique_ptr<DX12R_CommandAllocator> dxrCommandAllocator[frameBufferCount * threadCount];
-	unique_ptr<DX12R_CommandList> dxrCommandList;
 
 	ComPtr<ID3D12Fence>fence;							// Utilized for syncing the GPU and CPU
 	HANDLE fenceEvent;															// A Handle to our fence, to know when the gpu is unlocked
@@ -38,7 +36,7 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	ComPtr<ID3D12Device> device = dxrDevice->GetDevice();
 
 //Command Queue Creation
-	dxrCommandQueue = make_unique<DX12R_CommandQueue>();
+	dxrCommandQueue = make_shared<DX12R_CommandQueue>();
 	dxrCommandQueue->Initialize(dxrDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 	ComPtr<ID3D12CommandQueue> commandQueue = dxrCommandQueue->GetQueue();
 	
@@ -59,16 +57,6 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	dxrSwapChain = make_unique<DX12R_SwapChain>();
 	dxrSwapChain->Initialize(dxrDevice.get(), commandQueue.Get(), windowHandle, &swapChainDesc);
 	
-//Command Allocators & Command List Creation
-	for (int i = 0; i < frameBufferCount; i++)
-	{
-		dxrCommandAllocator[i] = make_unique<DX12R_CommandAllocator>();
-		dxrCommandAllocator[i]->Initialize(device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT);
-	}
-
-	dxrCommandList = make_unique<DX12R_CommandList>();
-	dxrCommandList->Initialize(device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT, dxrCommandAllocator[frameIndex]->GetAllocator().Get());
-
 //Fence & Fence Event Creation
 	hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	if (FAILED(hr))

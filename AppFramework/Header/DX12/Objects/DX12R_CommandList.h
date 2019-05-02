@@ -5,11 +5,10 @@ class DX12R_Device;
 class DX12R_CommandQueue;
 class DX12R_CommandAllocator;
 
-class DX12R_CommandList : std::enable_shared_from_this<DX12R_CommandList>
+class DX12R_CommandList :public  std::enable_shared_from_this<DX12R_CommandList>
 {
 public:
 	DX12R_CommandList();
-	bool Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator);
 	bool Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, weak_ptr < DX12R_CommandAllocator> commandAllocator, weak_ptr< DX12R_CommandQueue> commandQueue);
 
 	//Things that are required to be called after Reset
@@ -29,7 +28,6 @@ public:
 	//General use
 	HRESULT Close();
 	void CloseForSubmit();
-	HRESULT Reset(ID3D12CommandAllocator* commmandAllocator, ID3D12PipelineState* pipelineState = nullptr);
 	HRESULT Reset(weak_ptr<DX12R_CommandAllocator> commandAllocator, ID3D12PipelineState* pipelineState = nullptr);
 
 	void SetPipelineState(ID3D12PipelineState* pipelineState);

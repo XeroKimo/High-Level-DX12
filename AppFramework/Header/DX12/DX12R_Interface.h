@@ -13,10 +13,8 @@ namespace DX12Interface
 	extern const int threadCount;
 
 	extern shared_ptr<DX12R_Device> dxrDevice;
-	extern unique_ptr<DX12R_CommandQueue> dxrCommandQueue;									// Responsible for sending command lists to the device for execution
+	extern shared_ptr<DX12R_CommandQueue> dxrCommandQueue;									// Responsible for sending command lists to the device for execution
 	extern unique_ptr<DX12R_SwapChain> dxrSwapChain;										// Swap chain used to switch between render targets
-	extern unique_ptr<DX12R_CommandAllocator> dxrCommandAllocator[];
-	extern unique_ptr<DX12R_CommandList> dxrCommandList;
 
 	extern ComPtr<ID3D12Fence> fence;														// Utilized for syncing the GPU and CPU
 	extern HANDLE fenceEvent;															// A Handle to our fence, to know when the gpu is unlocked

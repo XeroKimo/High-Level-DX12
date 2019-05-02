@@ -50,17 +50,11 @@ bool DX12R_SwapChain::Initialize(DX12R_Device* device, ID3D12CommandQueue* comma
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	//m_renderTargets.resize(frameBufferCount);
 	m_frameBuffers.resize(frameBufferCount);
 	for (int i = 0; i < frameBufferCount; i++)
 	{
 		m_frameBuffers[i] = make_unique<DX12R_FrameBuffer>();
 		m_frameBuffers[i]->Initialize(device, this, i, &rtvDesc, rtvHandle);
-		//hr = m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_renderTargets[i]));
-		//if (FAILED(hr))
-		//	return false;
-
-		//device->CreateRenderTargetView(m_renderTargets[i].Get(), &rtvDesc, rtvHandle);
 		rtvHandle.Offset(1, m_rtvDescriptorSize);
 	}
 

@@ -84,7 +84,8 @@ bool DX12R_Device::CreateCommandQueue(D3D12_COMMAND_QUEUE_DESC* description, con
 
 bool DX12R_Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, const IID& iid, void** commandAllocator)
 {
-	if (FAILED(m_device->CreateCommandAllocator(type,iid, commandAllocator)))
+	HRESULT hr = m_device->CreateCommandAllocator(type, iid, commandAllocator);
+	if (FAILED(hr))
 		return false;
 	return true;
 }

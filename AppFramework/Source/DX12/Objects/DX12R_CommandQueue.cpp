@@ -8,21 +8,6 @@ DX12R_CommandQueue::DX12R_CommandQueue()
 
 }
 
-bool DX12R_CommandQueue::Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority, D3D12_COMMAND_QUEUE_FLAGS flags)
-{
-	D3D12_COMMAND_QUEUE_DESC desc = {};
-	desc.Type = type;
-	desc.Priority = priority;
-	desc.Flags = flags;
-	desc.NodeMask = device->GetNodeCount();
-
-
-	if (FAILED(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_commandQueue))))
-		return false;
-
-	return true;
-}
-
 bool DX12R_CommandQueue::Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, D3D12_COMMAND_QUEUE_PRIORITY priority, D3D12_COMMAND_QUEUE_FLAGS flags)
 {
 	m_device = device;
@@ -32,6 +17,8 @@ bool DX12R_CommandQueue::Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND
 	desc.Priority = priority;
 	desc.Flags = flags;
 	desc.NodeMask = device.lock()->GetNodeMask();
+
+	m_type = type;
 
 	if (!device.lock()->CreateCommandQueue(&desc,IID_PPV_ARGS(&m_commandQueue)))
 		return false;
@@ -111,7 +98,7 @@ ComPtr<ID3D12CommandQueue> DX12R_CommandQueue::GetQueue()
 
 void DX12R_CommandQueue::CreateCommandAllocator()
 {
-	shared_ptr<DX12R_CommandAllocator> newAllocator = make_unique<DX12R_CommandAllocator>();
+	shared_ptr<DX12R_CommandAllocator> newAllocator = make_shared<DX12R_CommandAllocator>();
 	newAllocator->Initialize(m_device.lock().get(), m_type, shared_from_this());
 	m_inactiveAllocators.push_back(newAllocator);
 }
