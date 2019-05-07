@@ -154,6 +154,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\DX12\Objects\DX12R_Fence.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\DX12\Objects\DX12R_FrameBuffer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -221,6 +225,7 @@
     <ClInclude Include="Header\DX12\Objects\DX12R_CommandList.h" />
     <ClInclude Include="Header\DX12\Objects\DX12R_CommandQueue.h" />
     <ClInclude Include="Header\DX12\Objects\DX12R_Device.h" />
+    <ClInclude Include="Header\DX12\Objects\DX12R_Fence.h" />
     <ClInclude Include="Header\DX12\Objects\DX12R_FrameBuffer.h" />
     <ClInclude Include="Header\DX12\Objects\DX12R_SwapChain.h" />
     <ClInclude Include="Header\Framework.h" />

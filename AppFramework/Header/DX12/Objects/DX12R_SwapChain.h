@@ -1,8 +1,10 @@
 #pragma once
 #include "DX12/DirectX12.h"
 
+class DX12R_CommandQueue;
 class DX12R_Device;
 struct DX12R_FrameBuffer;
+
 class DX12R_SwapChain
 {
 public:
@@ -10,7 +12,7 @@ public:
 	
 	bool Initialize(DX12R_Device* device, ID3D12CommandQueue* commandQueue, HWND windowHandle, DXGI_SWAP_CHAIN_DESC1* swapChainDesc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullScreenDesc = nullptr, IDXGIOutput* restrictOutputTo = nullptr);
 
-	HRESULT Present(UINT syncInterval, UINT flags);
+	HRESULT Present(UINT syncInterval, UINT flags, DX12R_CommandQueue* queue);
 
 	ComPtr<IDXGISwapChain3> GetSwapChain();
 	ComPtr<ID3D12Resource> GetFrameBufferResource(UINT bufferIndex);

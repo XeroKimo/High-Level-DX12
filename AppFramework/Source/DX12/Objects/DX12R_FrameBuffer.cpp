@@ -9,6 +9,9 @@ void DX12R_FrameBuffer::Initialize(DX12R_Device* device, DX12R_SwapChain* swapCh
 {
 	swapChain->GetSwapChain()->GetBuffer(frameIndex, IID_PPV_ARGS(&m_frameResource));
 	device->CreateRenderTargetView(m_frameResource.Get(), description, handle);
+
+	m_fence = make_unique<DX12R_Fence>();
+	m_fence->Inititalize(device);
 }
 
 void DX12R_FrameBuffer::Reset()

@@ -61,10 +61,16 @@ bool DX12R_SwapChain::Initialize(DX12R_Device* device, ID3D12CommandQueue* comma
 	return true;
 }
 
-HRESULT DX12R_SwapChain::Present(UINT syncInterval, UINT flags)
+HRESULT DX12R_SwapChain::Present(UINT syncInterval, UINT flags, DX12R_CommandQueue* queue)
 {
+	m_frameBuffers[frameIndex]->m_fence->SignalGPU(queue);
+
 	HRESULT hr = m_swapChain->Present(syncInterval, flags);
+
 	frameIndex = dxrSwapChain->GetCurrentBackBufferIndex();
+	m_frameBuffers[frameIndex]->m_fence->SyncDevices();
+	m_frameBuffers[frameIndex]->Reset();
+
 	return hr;
 }
 

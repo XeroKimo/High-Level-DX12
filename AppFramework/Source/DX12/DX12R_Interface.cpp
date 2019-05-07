@@ -20,6 +20,8 @@ namespace DX12Interface
 	unsigned int frameIndex;													// The current buffer we are currently on
 
 	ComPtr<ID3D12RootSignature> defaultSignature;
+
+	bool SingleGPUMode;
 }
 
 using namespace DX12Interface;
@@ -33,6 +35,7 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	dxrDevice = make_shared<DX12R_Device>();
 	if (!dxrDevice->Initialize())
 		return false;
+	SingleGPUMode = true;
 	ComPtr<ID3D12Device> device = dxrDevice->GetDevice();
 
 //Command Queue Creation

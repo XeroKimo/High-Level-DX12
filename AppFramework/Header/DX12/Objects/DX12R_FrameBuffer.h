@@ -4,6 +4,7 @@
 class DX12R_Device;
 class DX12R_SwapChain;
 class DX12R_CommandAllocator;
+class DX12R_Fence;
 
 struct DX12R_FrameBuffer
 {
@@ -16,4 +17,5 @@ public:
 
 	ComPtr<ID3D12Resource> m_frameResource;
 	std::vector<shared_ptr<DX12R_CommandAllocator>> m_activeAllocators;
+	unique_ptr<DX12R_Fence> m_fence;
 };

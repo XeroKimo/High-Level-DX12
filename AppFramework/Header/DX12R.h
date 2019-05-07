@@ -8,6 +8,7 @@
 #include "DX12/Objects/DX12R_CommandList.h"
 #include "DX12/Objects/DX12R_CommandQueue.h"
 #include "DX12/Objects/DX12R_Device.h"
+#include "DX12/Objects/DX12R_Fence.h"
 #include "DX12/Objects/DX12R_FrameBuffer.h"
 #include "DX12/Objects/DX12R_SwapChain.h"
 

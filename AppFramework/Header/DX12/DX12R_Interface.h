@@ -26,6 +26,7 @@ namespace DX12Interface
 	extern unsigned int frameIndex;														// The current buffer we are currently on
 
 	extern ComPtr<ID3D12RootSignature> defaultSignature;		//A default root signature with no params
+	extern bool SingleGPUMode;
 }
 
 bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle);

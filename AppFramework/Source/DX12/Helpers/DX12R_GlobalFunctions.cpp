@@ -16,8 +16,8 @@ void DX12R_DeviceSync()
 
 void DX12R_BeginRender()
 {
-	DX12R_DeviceSync();
-	GetSwapChain()->GetFrameBuffer(frameIndex)->Reset();
+	//DX12R_DeviceSync();
+	//GetSwapChain()->GetFrameBuffer(frameIndex)->Reset();
 
 	shared_ptr<DX12R_CommandList> commandList = dxrCommandQueue->GetCommandList();
 
@@ -41,9 +41,9 @@ void DX12R_EndRender()
 	commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dxrSwapChain->GetFrameBufferResource(frameIndex).Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	dxrCommandQueue->ExecuteCommandLists();
-	dxrCommandQueue->Signal(fence.Get(), fenceValue);
+	//dxrCommandQueue->Signal(fence.Get(), fenceValue);
 
-	dxrSwapChain->Present(0, 0);
+	dxrSwapChain->Present(0, 0, dxrCommandQueue.get());
 }
 
 DX12R_SwapChain* GetSwapChain()
