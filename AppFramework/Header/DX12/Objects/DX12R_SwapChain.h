@@ -30,7 +30,6 @@ private:
 private:
 	ComPtr<IDXGISwapChain3> m_swapChain;
 	ComPtr<ID3D12DescriptorHeap> m_rtvDescriptorHeap;
-	std::vector<ComPtr<ID3D12Resource>> m_renderTargets;
 	std::vector<unique_ptr<DX12R_FrameBuffer>> m_frameBuffers;
 
 	UINT m_rtvDescriptorSize;

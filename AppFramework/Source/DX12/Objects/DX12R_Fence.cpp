@@ -9,7 +9,7 @@ DX12R_Fence::DX12R_Fence()
 
 bool DX12R_Fence::Inititalize(DX12R_Device* device, D3D12_FENCE_FLAGS flags)
 {
-	if (!device->CreateFence(m_fenceValue,flags,IID_PPV_ARGS(&m_fence)))
+	if (FAILED(device->CreateFence(m_fenceValue,flags,IID_PPV_ARGS(&m_fence))))
 		return false;
 
 	m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);

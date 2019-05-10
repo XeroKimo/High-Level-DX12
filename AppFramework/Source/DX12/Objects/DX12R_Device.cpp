@@ -68,45 +68,45 @@ bool DX12R_Device::Initialize(UINT adapterIndex, D3D_FEATURE_LEVEL featureLevel)
 	return false;
 }
 
-bool DX12R_Device::CreateCommandList(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator, const IID& riid, void** ppCommandList)
+HRESULT DX12R_Device::CreateCommandList(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator, const IID& riid, void** ppCommandList)
 {
-	if (FAILED(m_device->CreateCommandList(m_nodeMask, type, commandAllocator, nullptr, riid, ppCommandList)))
-		return false;
-	return true;
+	if (DX12Interface::SingleGPUMode)
+		return m_device->CreateCommandList(0, type, commandAllocator, nullptr, riid, ppCommandList);
+	else
+		return m_device->CreateCommandList(m_nodeMask, type, commandAllocator, nullptr, riid, ppCommandList);
 }
 
-bool DX12R_Device::CreateCommandQueue(D3D12_COMMAND_QUEUE_DESC* description, const IID& iid, void** commandQueue)
+HRESULT DX12R_Device::CreateCommandQueue(D3D12_COMMAND_QUEUE_DESC* description, const IID& iid, void** commandQueue)
 {
-	if (FAILED(m_device->CreateCommandQueue(description, iid, commandQueue)))
-		return false;
-	return true;
+	return m_device->CreateCommandQueue(description, iid, commandQueue);
 }
 
-bool DX12R_Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, const IID& iid, void** commandAllocator)
+HRESULT DX12R_Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, const IID& iid, void** commandAllocator)
 {
-	HRESULT hr = m_device->CreateCommandAllocator(type, iid, commandAllocator);
-	if (FAILED(hr))
-		return false;
-	return true;
+	return m_device->CreateCommandAllocator(type, iid, commandAllocator);
 }
 
-bool DX12R_Device::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC* description, const IID& iid, void** heap)
+HRESULT DX12R_Device::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_DESC* description, const IID& iid, void** heap)
 {
-	if (FAILED(m_device->CreateDescriptorHeap(description, iid, heap)))
-		return false;
-	return true;
+	return m_device->CreateDescriptorHeap(description, iid, heap);
 }
 
-bool DX12R_Device::CreateFence(UINT64 initialValue, D3D12_FENCE_FLAGS flags, const IID& iid, void** fence)
+HRESULT DX12R_Device::CreateFence(UINT64 initialValue, D3D12_FENCE_FLAGS flags, const IID& iid, void** fence)
 {
-	if (FAILED(m_device->CreateFence(initialValue,flags,iid,fence)))
-		return false;
-	return true;
+	return m_device->CreateFence(initialValue, flags, iid, fence);
 }
 
 void DX12R_Device::CreateRenderTargetView(ID3D12Resource* resource, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
 	m_device->CreateRenderTargetView(resource, description, handle);
+}
+
+HRESULT DX12R_Device::CreateRootSignature(ID3DBlob* blobWithRootSignature, const IID& iid, void** rootSignature)
+{
+	if (DX12Interface::SingleGPUMode)
+		return m_device->CreateRootSignature(0,blobWithRootSignature->GetBufferPointer(),blobWithRootSignature->GetBufferSize(), iid,rootSignature);
+	else
+		return m_device->CreateRootSignature(m_nodeMask, blobWithRootSignature->GetBufferPointer(), blobWithRootSignature->GetBufferSize(), iid, rootSignature);
 }
 
 UINT DX12R_Device::GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE type)

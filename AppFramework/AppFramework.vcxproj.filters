@@ -48,6 +48,9 @@
     <ClCompile Include="Source\DX12\Objects\DX12R_Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DX12\Objects\DX12R_RootSignature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Source\FrameworkDefaults.h">
@@ -93,6 +96,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Header\DX12\Objects\DX12R_Fence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Objects\DX12R_RootSignature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

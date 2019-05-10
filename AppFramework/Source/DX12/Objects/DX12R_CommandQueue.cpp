@@ -20,7 +20,7 @@ bool DX12R_CommandQueue::Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND
 
 	m_type = type;
 
-	if (!device.lock()->CreateCommandQueue(&desc,IID_PPV_ARGS(&m_commandQueue)))
+	if (FAILED(device.lock()->CreateCommandQueue(&desc,IID_PPV_ARGS(&m_commandQueue))))
 		return false;
 
 	return true;
@@ -110,7 +110,7 @@ shared_ptr<DX12R_CommandList> DX12R_CommandQueue::CreateCommandList()
 	cAllocator->Reset();
 
 	shared_ptr<DX12R_CommandList> cList = make_shared<DX12R_CommandList>();
-	cList->Initialize(m_device, m_type, cAllocator, weak_from_this());
+	cList->Initialize(m_device.lock().get(), m_type, cAllocator, weak_from_this());
 
 	return cList;
 }

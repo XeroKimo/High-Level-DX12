@@ -9,7 +9,7 @@ class DX12R_CommandList :public  std::enable_shared_from_this<DX12R_CommandList>
 {
 public:
 	DX12R_CommandList();
-	bool Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, weak_ptr < DX12R_CommandAllocator> commandAllocator, weak_ptr< DX12R_CommandQueue> commandQueue);
+	bool Initialize(DX12R_Device* device, D3D12_COMMAND_LIST_TYPE type, weak_ptr < DX12R_CommandAllocator> commandAllocator, weak_ptr< DX12R_CommandQueue> commandQueue);
 
 	//Things that are required to be called after Reset
 	void ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView, const float* colorRGBA, UINT numRects = 0, D3D12_RECT* rect = nullptr);

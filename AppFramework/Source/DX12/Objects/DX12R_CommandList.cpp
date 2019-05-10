@@ -6,11 +6,11 @@ DX12R_CommandList::DX12R_CommandList()
 
 }
 
-bool DX12R_CommandList::Initialize(weak_ptr<DX12R_Device> device, D3D12_COMMAND_LIST_TYPE type, weak_ptr<DX12R_CommandAllocator> commandAllocator, weak_ptr<DX12R_CommandQueue> commandQueue)
+bool DX12R_CommandList::Initialize(DX12R_Device* device, D3D12_COMMAND_LIST_TYPE type, weak_ptr<DX12R_CommandAllocator> commandAllocator, weak_ptr<DX12R_CommandQueue> commandQueue)
 {
 	m_commandAllocator = commandAllocator.lock();
 	m_commandQueue = commandQueue;
-	if (!device.lock()->CreateCommandList(type, m_commandAllocator->GetAllocator().Get(), IID_PPV_ARGS(&m_commandList)))
+	if (FAILED(device->CreateCommandList(type, m_commandAllocator->GetAllocator().Get(), IID_PPV_ARGS(&m_commandList))))
 		return false;
 	return true;
 }

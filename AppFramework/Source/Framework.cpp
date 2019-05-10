@@ -5,6 +5,8 @@ Framework::Framework()
 	m_hInstance = nullptr;
 	m_windowHandle = nullptr;
 	fullscreen = false;
+	m_windowedHeight = 0;
+	m_windowedWidth = 0;
 }
 
 Framework::~Framework()
@@ -49,7 +51,7 @@ bool Framework::InitWindow(HINSTANCE hinstance, unsigned int width, unsigned  in
 	}
     // Create the window.
 
-	RECT windowRect = { 0,0,width,height };
+	RECT windowRect = { 0,0, static_cast<LONG>(width),static_cast<LONG>(height) };
 	AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
     m_windowHandle = CreateWindowEx(
@@ -79,8 +81,6 @@ bool Framework::InitWindow(HINSTANCE hinstance, unsigned int width, unsigned  in
 
 void Framework::Run()
 {
-	//D3D12Renderer::commandList->Close();
-
     MSG msg = {};
     bool done = false;
     while (!done)
@@ -99,8 +99,6 @@ void Framework::Run()
 		{
 			DX12R_BeginRender();
 			DX12R_EndRender();
-			/*D3D12R_BeginRender();
-			D3D12R_EndRender();*/
 		}
     }
 

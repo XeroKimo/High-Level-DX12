@@ -38,7 +38,7 @@ bool DX12R_SwapChain::Initialize(DX12R_Device* device, ID3D12CommandQueue* comma
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = device->GetNodeMask();
 
-	if (!device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap)))
+	if (FAILED(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap))))
 		return false;
 
 	m_rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -84,11 +84,11 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 
 	for (int i = 0; i < frameBufferCount; i++)
 	{
-	m_frameBuffers[i]->m_fence->SignalGPU(dxrCommandQueue.get());
-	m_frameBuffers[i]->m_fence->SyncDevices();
+		m_frameBuffers[i]->m_fence->SignalGPU(dxrCommandQueue.get());
+		m_frameBuffers[i]->m_fence->SyncDevices();
+		m_frameBuffers[i]->m_fence->SetValue(0);
 
 		m_frameBuffers[i]->m_frameResource.Reset();
-		m_frameBuffers[i]->m_fence->SetValue(0);
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 desc;
@@ -103,8 +103,8 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 	scissorRect.bottom = windowHeight;
 	scissorRect.right = windowWidth;
 
-	viewport.Height = windowHeight;
-	viewport.Width = windowWidth;
+	viewport.Height = static_cast<FLOAT>(windowHeight);
+	viewport.Width = static_cast<FLOAT>(windowWidth);
 
 	return hr;
 

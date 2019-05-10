@@ -11,5 +11,6 @@
 #include "DX12/Objects/DX12R_Fence.h"
 #include "DX12/Objects/DX12R_FrameBuffer.h"
 #include "DX12/Objects/DX12R_SwapChain.h"
+#include "DX12/Objects/DX12R_RootSignature.h"
 
 #include "DX12/DX12R_Interface.h"
