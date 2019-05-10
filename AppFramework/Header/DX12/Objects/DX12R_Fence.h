@@ -16,6 +16,9 @@ public:
 
 	void SyncDevices(DWORD milliseconds = INFINITE);
 
+	UINT64 GetValue();
+
+	void SetValue(UINT64 value);
 private:
 	ComPtr<ID3D12Fence> m_fence;
 	HANDLE m_fenceEvent;

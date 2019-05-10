@@ -82,12 +82,13 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 	if (m_frameBuffers.empty())
 		return 0;
 
-	m_frameBuffers[frameIndex]->m_fence->SignalGPU(dxrCommandQueue.get());
-	m_frameBuffers[frameIndex]->m_fence->SyncDevices();
-
 	for (int i = 0; i < frameBufferCount; i++)
 	{
+	m_frameBuffers[i]->m_fence->SignalGPU(dxrCommandQueue.get());
+	m_frameBuffers[i]->m_fence->SyncDevices();
+
 		m_frameBuffers[i]->m_frameResource.Reset();
+		m_frameBuffers[i]->m_fence->SetValue(0);
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 desc;
@@ -162,5 +163,6 @@ void DX12R_SwapChain::CreateRenderTargets(DX12R_Device* device)
 		m_frameBuffers[i]->CreateBuffer(device, this, i, &rtvDesc, rtvHandle);
 		rtvHandle.Offset(1, m_rtvDescriptorSize);
 	}
+	UINT test = m_swapChain->GetCurrentBackBufferIndex();
 	frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 }

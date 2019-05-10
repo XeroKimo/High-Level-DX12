@@ -41,3 +41,13 @@ void DX12R_Fence::SyncDevices(DWORD milliseconds)
 
 	m_fenceValue++;
 }
+
+UINT64 DX12R_Fence::GetValue()
+{
+	return m_fenceValue;
+}
+
+void DX12R_Fence::SetValue(UINT64 value)
+{
+	m_fenceValue = value;
+}
