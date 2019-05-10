@@ -26,7 +26,7 @@ namespace DX12Interface
 
 using namespace DX12Interface;
 
-bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
+bool DX12R_Initialize(int windowWidth, int windowHeight, bool fullscreen ,HWND windowHandle)
 {
 	HRESULT hr;
 
@@ -58,7 +58,14 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // dxgi will discard the buffer (data) after we call present
 
 	dxrSwapChain = make_unique<DX12R_SwapChain>();
-	dxrSwapChain->Initialize(dxrDevice.get(), commandQueue.Get(), windowHandle, &swapChainDesc);
+
+	if (fullscreen)
+	{
+		DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
+		dxrSwapChain->Initialize(dxrDevice.get(), commandQueue.Get(), windowHandle, &swapChainDesc, &fullscreenDesc);
+	}
+	else
+		dxrSwapChain->Initialize(dxrDevice.get(), commandQueue.Get(), windowHandle, &swapChainDesc);
 	
 //Fence & Fence Event Creation
 	hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
@@ -94,5 +101,6 @@ bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle)
 
 void DX12R_Shutdown()
 {
-
+	dxrSwapChain->GetFrameBuffer(frameIndex)->m_fence->SignalGPU(dxrCommandQueue.get());
+	dxrSwapChain->GetFrameBuffer(frameIndex)->m_fence->SyncDevices();
 }

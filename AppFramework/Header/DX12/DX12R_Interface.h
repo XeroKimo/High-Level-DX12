@@ -29,5 +29,5 @@ namespace DX12Interface
 	extern bool SingleGPUMode;
 }
 
-bool DX12R_Initialize(int windowWidth, int windowHeight, HWND windowHandle);
+bool DX12R_Initialize(int windowWidth, int windowHeight, bool fullscreen,  HWND windowHandle);
 void DX12R_Shutdown();

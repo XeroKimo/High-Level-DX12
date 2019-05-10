@@ -80,7 +80,7 @@ HRESULT DX12R_CommandList::Reset(weak_ptr<DX12R_CommandAllocator> commandAllocat
 {
 	m_commandAllocator = commandAllocator.lock();
 
-	return m_commandList->Reset(m_commandAllocator->GetAllocator().Get(), pipelineState);;
+	return m_commandList->Reset(m_commandAllocator->GetAllocator().Get(), pipelineState);
 }
 
 void DX12R_CommandList::SetPipelineState(ID3D12PipelineState* pipelineState)

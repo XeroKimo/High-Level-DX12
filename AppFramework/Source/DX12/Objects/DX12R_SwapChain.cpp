@@ -74,6 +74,43 @@ HRESULT DX12R_SwapChain::Present(UINT syncInterval, UINT flags, DX12R_CommandQue
 	return hr;
 }
 
+HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
+{
+	if (m_frameBuffers.empty())
+		return 0;
+
+	m_frameBuffers[frameIndex]->m_fence->SignalGPU(dxrCommandQueue.get());
+	m_frameBuffers[frameIndex]->m_fence->SyncDevices();
+
+	for (int i = 0; i < frameBufferCount; i++)
+	{
+		m_frameBuffers[i]->m_frameResource.Reset();
+	}
+
+	DXGI_SWAP_CHAIN_DESC1 desc;
+	m_swapChain->GetDesc1(&desc);
+	
+	HRESULT hr = m_swapChain->ResizeBuffers(frameBufferCount, width, height, desc.Format, desc.Flags);
+	hr = dxrDevice->GetDevice()->GetDeviceRemovedReason();
+	if (FAILED(hr))
+		return hr;
+
+	CreateRenderTargets(dxrDevice.get());
+	scissorRect.bottom = height;
+	scissorRect.right = width;
+
+	viewport.Height = height;
+	viewport.Width = width;
+
+	return hr;
+
+}
+
+HRESULT DX12R_SwapChain::SetFullScreenState(bool fullscreen)
+{
+	return m_swapChain->SetFullscreenState(fullscreen,nullptr);
+}
+
 ComPtr<IDXGISwapChain3> DX12R_SwapChain::GetSwapChain()
 {
 	return m_swapChain;
@@ -102,4 +139,25 @@ UINT DX12R_SwapChain::GetRTVDescriptorSize()
 UINT DX12R_SwapChain::GetCurrentBackBufferIndex()
 {
 	return m_swapChain->GetCurrentBackBufferIndex();
+}
+
+void DX12R_SwapChain::CreateRenderTargets(DX12R_Device* device)
+{
+	DXGI_SWAP_CHAIN_DESC1 desc;
+	m_swapChain->GetDesc1(&desc);
+	
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = GetRTVHandle();
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+	rtvDesc.Format = desc.Format;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.Texture2D.PlaneSlice = 0;
+
+	for (int i = 0; i < frameBufferCount; i++)
+	{
+		m_frameBuffers[i]->CreateBuffer(device, this, i, &rtvDesc, rtvHandle);
+		rtvHandle.Offset(1, m_rtvDescriptorSize);
+	}
+	frameIndex = m_swapChain->GetCurrentBackBufferIndex();
 }

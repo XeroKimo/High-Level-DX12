@@ -12,6 +12,7 @@ public:
 	DX12R_FrameBuffer();
 
 	void Initialize(DX12R_Device* device, DX12R_SwapChain* swapChain, int frameIndex, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+	void CreateBuffer(DX12R_Device* device, DX12R_SwapChain* swapChain, int frameIndex, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
 	void Reset();
 

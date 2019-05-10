@@ -32,6 +32,7 @@ void DX12R_Fence::SignalCPU()
 
 void DX12R_Fence::SyncDevices(DWORD milliseconds)
 {
+
 	if (m_fence->GetCompletedValue() < m_fenceValue)
 	{
 		m_fence->SetEventOnCompletion(m_fenceValue, m_fenceEvent);
