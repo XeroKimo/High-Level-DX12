@@ -76,6 +76,9 @@ HRESULT DX12R_SwapChain::Present(UINT syncInterval, UINT flags, DX12R_CommandQue
 
 HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 {
+	UINT windowWidth = (width == 0) ? 1 : width;
+	UINT windowHeight = (height == 0) ? 1 : height;
+
 	if (m_frameBuffers.empty())
 		return 0;
 
@@ -90,17 +93,17 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 	DXGI_SWAP_CHAIN_DESC1 desc;
 	m_swapChain->GetDesc1(&desc);
 	
-	HRESULT hr = m_swapChain->ResizeBuffers(frameBufferCount, width, height, desc.Format, desc.Flags);
+	HRESULT hr = m_swapChain->ResizeBuffers(frameBufferCount, windowWidth, windowHeight, desc.Format, desc.Flags);
 	hr = dxrDevice->GetDevice()->GetDeviceRemovedReason();
 	if (FAILED(hr))
 		return hr;
 
 	CreateRenderTargets(dxrDevice.get());
-	scissorRect.bottom = height;
-	scissorRect.right = width;
+	scissorRect.bottom = windowHeight;
+	scissorRect.right = windowWidth;
 
-	viewport.Height = height;
-	viewport.Width = width;
+	viewport.Height = windowHeight;
+	viewport.Width = windowWidth;
 
 	return hr;
 
