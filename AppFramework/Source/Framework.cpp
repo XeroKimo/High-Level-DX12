@@ -81,6 +81,8 @@ bool Framework::InitWindow(HINSTANCE hinstance, unsigned int width, unsigned  in
 
 void Framework::Run()
 {
+
+
     MSG msg = {};
     bool done = false;
     while (!done)

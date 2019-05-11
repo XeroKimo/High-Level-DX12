@@ -51,6 +51,9 @@
     <ClCompile Include="Source\DX12\Objects\DX12R_RootSignature.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DX12\Objects\DX12R_PrimitiveResource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Source\FrameworkDefaults.h">
@@ -101,5 +104,21 @@
     <ClInclude Include="Header\DX12\Objects\DX12R_RootSignature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Header\DX12\Objects\DX12R_PrimitiveResource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Systems\DX12S_DeviceContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Systems\DX12S_MemorySystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header\DX12\Systems\DX12S_CommandSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\VertexShader.hlsl" />
+    <FxCompile Include="Resources\Shaders\PixelShader.hlsl" />
   </ItemGroup>
 </Project>

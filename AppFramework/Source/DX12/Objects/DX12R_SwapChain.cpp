@@ -93,13 +93,19 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 
 	DXGI_SWAP_CHAIN_DESC1 desc;
 	m_swapChain->GetDesc1(&desc);
-	
+
+	UINT64 availableMemory = dxrDevice->GetMemoryInfo().CurrentUsage;
+
 	HRESULT hr = m_swapChain->ResizeBuffers(frameBufferCount, windowWidth, windowHeight, desc.Format, desc.Flags);
 	hr = dxrDevice->GetDevice()->GetDeviceRemovedReason();
 	if (FAILED(hr))
 		return hr;
 
 	CreateRenderTargets(dxrDevice.get());
+
+
+	UINT64 availableMemoryNow = dxrDevice->GetMemoryInfo().CurrentUsage;
+
 	scissorRect.bottom = windowHeight;
 	scissorRect.right = windowWidth;
 
