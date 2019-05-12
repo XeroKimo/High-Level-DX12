@@ -9,13 +9,14 @@ class DX12R_Fence;
 struct DX12R_FrameBuffer
 {
 public:
-	DX12R_FrameBuffer();
+	DX12R_FrameBuffer(DX12R_Device* device);
 
-	void Initialize(DX12R_Device* device, DX12R_SwapChain* swapChain, int frameIndex, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle);
 	void CreateBuffer(DX12R_Device* device, DX12R_SwapChain* swapChain, int frameIndex, D3D12_RENDER_TARGET_VIEW_DESC* description, D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
+	void AttachAllocators(std::vector<shared_ptr<DX12R_CommandAllocator>> allocators);
 	void Reset();
 
+public:
 	ComPtr<ID3D12Resource> m_frameResource;
 	std::vector<shared_ptr<DX12R_CommandAllocator>> m_activeAllocators;
 	unique_ptr<DX12R_Fence> m_fence;

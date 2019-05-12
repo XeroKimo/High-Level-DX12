@@ -20,17 +20,22 @@ bool DX12R_Fence::Inititalize(DX12R_Device* device, D3D12_FENCE_FLAGS flags)
 	return true;
 }
 
-void DX12R_Fence::SignalGPU(DX12R_CommandQueue* queue)
-{
-	queue->Signal(m_fence.Get(), m_fenceValue);
-}
-
 void DX12R_Fence::SignalCPU()
 {
 	m_fence->Signal(m_fenceValue);
 }
 
-void DX12R_Fence::SyncDevices(DWORD milliseconds)
+void DX12R_Fence::StallGPU(DX12R_CommandQueue* commandQueue)
+{
+	commandQueue->StallGPU(m_fence.Get(), m_fenceValue);
+}
+
+void DX12R_Fence::SignalGPU(DX12R_CommandQueue* commandQueue)
+{
+	commandQueue->SignalGPU(m_fence.Get(), m_fenceValue);
+}
+
+void DX12R_Fence::StallCPU(DWORD milliseconds)
 {
 
 	if (m_fence->GetCompletedValue() < m_fenceValue)

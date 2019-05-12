@@ -1,13 +1,14 @@
 #pragma once
 #include "DX12/DirectX12.h"
 
+class DX12S_DeviceContext;
+
 class DX12R_Device
 {
 public:
 	DX12R_Device();
 	~DX12R_Device();
-	bool Initialize(D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0);
-	bool Initialize(UINT adapterIndex, D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0);
+	bool Initialize(DX12S_DeviceContext* deviceContext, D3D_FEATURE_LEVEL featureLevel, bool allowSoftwareDevices);
 
 	HRESULT CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type, const IID& iid, void** commandAllocator);
 	HRESULT CreateCommandList(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator, const IID& riid, void** ppCommandList);
@@ -24,7 +25,8 @@ public:
 	ComPtr<ID3D12Device> GetDevice();
 	UINT GetNodeMask();
 private:
+	ComPtr<IDXGIAdapter3> m_adapter;
 	ComPtr<ID3D12Device> m_device;
 	UINT m_nodeMask;
-	ComPtr<IDXGIAdapter3> m_adapter;
+	DX12S_DeviceContext* m_deviceContext;
 };

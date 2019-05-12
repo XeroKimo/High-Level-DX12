@@ -10,8 +10,9 @@ DX12R_Device::~DX12R_Device()
 {
 }
 
-bool DX12R_Device::Initialize(D3D_FEATURE_LEVEL featureLevel)
+bool DX12R_Device::Initialize(DX12S_DeviceContext* deviceContext, D3D_FEATURE_LEVEL featureLevel, bool allowSoftwareDevices)
 {
+	m_deviceContext = deviceContext;
 	ComPtr<IDXGIFactory4> dxgiFactory;
 	CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 
@@ -46,31 +47,9 @@ bool DX12R_Device::Initialize(D3D_FEATURE_LEVEL featureLevel)
 		return false;
 }
 
-bool DX12R_Device::Initialize(UINT adapterIndex, D3D_FEATURE_LEVEL featureLevel)
-{
-	ComPtr<IDXGIFactory4> dxgiFactory;
-	CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
-
-	ComPtr<IDXGIAdapter1> baseAdapter;
-	if (dxgiFactory->EnumAdapters1(adapterIndex, &baseAdapter) == DXGI_ERROR_NOT_FOUND)
-		return false;
-
-	baseAdapter.As(&m_adapter);
-
-	DXGI_ADAPTER_DESC1 desc;
-	m_adapter->GetDesc1(&desc);
-
-	if (SUCCEEDED(D3D12CreateDevice(m_adapter.Get(), featureLevel, IID_PPV_ARGS(&m_device))))
-	{
-		m_nodeMask = m_device->GetNodeCount();
-		return true;
-	}
-	return false;
-}
-
 HRESULT DX12R_Device::CreateCommandList(D3D12_COMMAND_LIST_TYPE type, ID3D12CommandAllocator* commandAllocator, const IID& riid, void** ppCommandList)
 {
-	if (DX12Interface::SingleGPUMode)
+	if (m_deviceContext->GetDX12Interface()->singleGPUMode)
 		return m_device->CreateCommandList(0, type, commandAllocator, nullptr, riid, ppCommandList);
 	else
 		return m_device->CreateCommandList(m_nodeMask, type, commandAllocator, nullptr, riid, ppCommandList);
@@ -103,7 +82,7 @@ void DX12R_Device::CreateRenderTargetView(ID3D12Resource* resource, D3D12_RENDER
 
 HRESULT DX12R_Device::CreateRootSignature(ID3DBlob* blobWithRootSignature, const IID& iid, void** rootSignature)
 {
-	if (DX12Interface::SingleGPUMode)
+	if (m_deviceContext->GetDX12Interface()->singleGPUMode)
 		return m_device->CreateRootSignature(0,blobWithRootSignature->GetBufferPointer(),blobWithRootSignature->GetBufferSize(), iid,rootSignature);
 	else
 		return m_device->CreateRootSignature(m_nodeMask, blobWithRootSignature->GetBufferPointer(), blobWithRootSignature->GetBufferSize(), iid, rootSignature);
@@ -118,7 +97,7 @@ DXGI_QUERY_VIDEO_MEMORY_INFO DX12R_Device::GetMemoryInfo(DXGI_MEMORY_SEGMENT_GRO
 {
 	DXGI_QUERY_VIDEO_MEMORY_INFO info;
 
-	if (DX12Interface::SingleGPUMode)
+	if (m_deviceContext->GetDX12Interface()->singleGPUMode)
 		m_adapter->QueryVideoMemoryInfo(0, group, &info);
 	else
 		m_adapter->QueryVideoMemoryInfo(m_nodeMask, group, &info);

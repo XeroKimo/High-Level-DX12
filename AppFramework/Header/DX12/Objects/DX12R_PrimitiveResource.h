@@ -1,6 +1,7 @@
 #pragma once
 #include "DX12/DirectX12.h"
 
+class DX12Interface;
 enum DX12H_PrimitiveType
 {
 	DX12H_PrimitiveType_Vertex = 0x01,
@@ -30,8 +31,10 @@ public:
 
 	ID3D12Resource* GetPrimitiveResource();
 	DX12H_PrimitiveWrapper* GetPrimitive();
+
+	void SetInterface(DX12Interface* dx12Interface);
 private:
 	ComPtr<ID3D12Resource> m_resource;
 	DX12H_PrimitiveWrapper m_primitive;
-
+	static DX12Interface* m_interface;
 };

@@ -12,7 +12,8 @@ Framework::Framework()
 Framework::~Framework()
 {
 	//D3D12R_Shutdown();
-	DX12R_Shutdown();
+	DX12Interface::Instance()->Shutdown();
+	//DX12R_Shutdown();
 }
 
 bool Framework::Initialize(HINSTANCE hinstance, unsigned int width, unsigned int height)
@@ -20,7 +21,7 @@ bool Framework::Initialize(HINSTANCE hinstance, unsigned int width, unsigned int
 	if (!InitWindow(hinstance, width, height))
 		return false;
 
-	if (!DX12R_Initialize(width, height, fullscreen, m_windowHandle))
+	if (!DX12Interface::Instance()->Initialize(width, height, fullscreen, m_windowHandle))
 		return false;
 
 	return true;
@@ -99,8 +100,11 @@ void Framework::Run()
         }
 		else
 		{
-			DX12R_BeginRender();
-			DX12R_EndRender();
+			shared_ptr<DX12R_CommandList> commandList = DX12Interface::Instance()->deviceManager->GetDeviceContext()->GetCommandSystem(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandList();
+			commandList->BeginRender();
+			commandList->EndRender();
+			//DX12R_BeginRender();
+			//DX12R_EndRender();
 		}
     }
 
@@ -130,15 +134,15 @@ LRESULT Framework::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		if (wParam == VK_F11)
 		{
 			framework->fullscreen = !framework->fullscreen;
-			HRESULT hr = DX12Interface::dxrSwapChain->SetFullScreenState(framework->fullscreen);
+			HRESULT hr = DX12Interface::Instance()->swapChain->SetFullScreenState(framework->fullscreen);
 			int i = 0;
 		}
 		return 0;
 	case WM_SIZE:
 		UINT height = HIWORD(lParam);
 		UINT width = LOWORD(lParam);
-		if (DX12Interface::dxrSwapChain)
-			DX12Interface::dxrSwapChain->ResizeBuffers(width, height);
+		if (DX12Interface::Instance()->swapChain)
+			DX12Interface::Instance()->swapChain->ResizeBuffers(width, height);
 		return 0;
 	}
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

@@ -11,10 +11,11 @@ public:
 	DX12R_Fence();
 	bool Inititalize(DX12R_Device* device, D3D12_FENCE_FLAGS flags = D3D12_FENCE_FLAG_NONE);
 
-	void SignalGPU(DX12R_CommandQueue* queue);
-	void SignalCPU();
+	void SignalGPU(DX12R_CommandQueue* commandQueue);
+	void StallCPU(DWORD milliseconds = INFINITE);
 
-	void SyncDevices(DWORD milliseconds = INFINITE);
+	void SignalCPU();
+	void StallGPU(DX12R_CommandQueue* commandQueue);
 
 	UINT64 GetValue();
 
