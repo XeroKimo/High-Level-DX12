@@ -100,9 +100,10 @@ void Framework::Run()
         }
 		else
 		{
-			shared_ptr<DX12R_CommandList> commandList = DX12Interface::Instance()->deviceManager->GetDeviceContext()->GetCommandSystem(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandList();
+			shared_ptr<DX12R_CommandList> commandList = DX12Interface::Instance()->GetCommandList(D3D12_COMMAND_LIST_TYPE_DIRECT);
 			commandList->BeginRender();
 			commandList->EndRender();
+			//DX12Interface::Instance()->swapChain->Present(0, 0, DX12Interface::Instance()->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).get());
 			//DX12R_BeginRender();
 			//DX12R_EndRender();
 		}

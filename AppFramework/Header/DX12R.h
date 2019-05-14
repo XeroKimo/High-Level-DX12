@@ -2,8 +2,6 @@
 
 #include "DX12/DirectX12.h"
 
-#include "DX12/Helpers/DX12R_GlobalFunctions.h"
-
 #include "DX12/Objects/DX12R_CommandAllocator.h"
 #include "DX12/Objects/DX12R_CommandList.h"
 #include "DX12/Objects/DX12R_CommandQueue.h"
@@ -17,6 +15,5 @@
 #include "DX12/Systems/DX12S_CommandSystem.h"
 #include "DX12/Systems/DX12S_DeviceContext.h"
 #include "DX12/Systems/DX12S_DeviceManager.h"
-#include "DX12/Systems/DX12S_MemorySystem.h"
 
 #include "DX12/DX12R_Interface.h"

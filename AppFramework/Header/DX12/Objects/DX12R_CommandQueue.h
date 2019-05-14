@@ -18,9 +18,7 @@ public:
 	HRESULT SignalGPU(ID3D12Fence* fence, UINT64 value);
 	HRESULT StallGPU(ID3D12Fence* fence, UINT64 value);
 
-
 	ComPtr<ID3D12CommandQueue> GetQueue();
-
 private:
 	ComPtr<ID3D12CommandQueue> m_commandQueue;
 	DX12S_CommandSystem* m_commandSystem;

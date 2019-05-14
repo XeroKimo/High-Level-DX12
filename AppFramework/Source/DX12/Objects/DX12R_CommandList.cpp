@@ -20,18 +20,20 @@ void DX12R_CommandList::BeginRender()
 {
 	DX12R_SwapChain* swapChain = m_commandSystem->GetDX12Interface()->swapChain.get();
 
-	swapChain->GetFrameBuffer(swapChain->GetCurrentBackBufferIndex())->Reset();
+	//swapChain->GetFrameBuffer(swapChain->GetCurrentBackBufferIndex())->Reset();
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle = swapChain->GetRTVHandle();
 	rtvHandle.Offset(swapChain->GetCurrentBackBufferIndex(), swapChain->GetRTVDescriptorSize());
 	const float clearColor[] = { 0.0f,0.2f,0.4f,1.0f };
 
 	ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(swapChain->GetCurrentBackBufferResource().Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-	OMSetRenderTargets(1, &rtvHandle,FALSE,nullptr);
+	OMSetRenderTargets(1, &rtvHandle);
 	ClearRenderTargetView(rtvHandle, clearColor,0,nullptr);
 }
 
 void DX12R_CommandList::EndRender()
 {
+	DX12R_SwapChain* swapChain = m_commandSystem->GetDX12Interface()->swapChain.get();
+	ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(swapChain->GetCurrentBackBufferResource().Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 	CloseAndSubmitAll();
 	m_commandSystem->GetDX12Interface()->swapChain->Present(0, 0, m_commandSystem->GetCommandQueue().get());
 }

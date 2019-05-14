@@ -111,5 +111,5 @@ ComPtr<ID3D12Device> DX12R_Device::GetDevice()
 
 UINT DX12R_Device::GetNodeMask()
 {
-	return m_nodeMask;
+	return (m_deviceContext->GetDX12Interface()->singleGPUMode) ? 0 : m_nodeMask;
 }

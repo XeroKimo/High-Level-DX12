@@ -64,11 +64,12 @@ DX12R_SwapChain::DX12R_SwapChain()
 
 bool DX12R_SwapChain::Initialize(DX12Interface* dx12Interface, DX12S_DeviceContext* deviceContext, HWND windowHandle, DXGI_SWAP_CHAIN_DESC1* swapChainDesc, DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullScreenDesc, IDXGIOutput* restrictOutputTo)
 {
+	m_interface = dx12Interface;
+
 	ComPtr<IDXGIFactory4> dxgiFactory;
 	CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
 
 	ComPtr<IDXGISwapChain1> tempSwapChain = nullptr;
-
 
 	dxgiFactory->CreateSwapChainForHwnd(
 		deviceContext->GetCommandSystem(D3D12_COMMAND_LIST_TYPE_DIRECT)->GetCommandQueue()->GetQueue().Get(),
@@ -83,7 +84,6 @@ bool DX12R_SwapChain::Initialize(DX12Interface* dx12Interface, DX12S_DeviceConte
 	if (!swapChain)
 		return false;
 
-	
 	m_frameIndex = swapChain->GetCurrentBackBufferIndex();
 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
@@ -94,6 +94,8 @@ bool DX12R_SwapChain::Initialize(DX12Interface* dx12Interface, DX12S_DeviceConte
 
 	if (FAILED(deviceContext->GetDevice()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvDescriptorHeap))))
 		return false;
+
+	m_rtvDescriptorSize = m_interface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 	m_frameBuffers.resize(m_frameBufferCount);
 	for (UINT i = 0; i < m_frameBufferCount; i++)
@@ -127,7 +129,7 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 
 	for (UINT i = 0; i < m_frameBufferCount; i++)
 	{
-		//m_frameBuffers[i]->m_fence->SignalGPU(dxrCommandQueue.get());
+		m_frameBuffers[i]->m_fence->SignalGPU(m_interface->GetCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT).get());
 		m_frameBuffers[i]->m_fence->StallCPU();
 		m_frameBuffers[i]->m_fence->SetValue(0);
 
@@ -141,7 +143,7 @@ HRESULT DX12R_SwapChain::ResizeBuffers(UINT width, UINT height)
 	if (FAILED(hr))
 		return hr;
 
-	CreateRenderTargets(DX12Interface::Instance()->deviceManager->GetDeviceContext()->GetDevice() );
+	CreateRenderTargets(m_interface->GetDevice());
 
 	//scissorRect.bottom = windowHeight;
 	//scissorRect.right = windowWidth;

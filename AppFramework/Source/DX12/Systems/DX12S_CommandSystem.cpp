@@ -47,8 +47,9 @@ void DX12S_CommandSystem::ExecuteWaitingCommandLists()
 
 	m_waitingCommandLists.clear();
 	m_deviceContext->GetDX12Interface()->SendAllocatorsToCurrentFrame(m_waitingAllocators);
+	m_waitingAllocators.clear();
 	
-		//GetSwapChain()->GetFrameBuffer(frameIndex)->m_activeAllocators.swap(m_waitingAllocators);
+	//GetSwapChain()->GetFrameBuffer(frameIndex)->m_activeAllocators.swap(m_waitingAllocators);
 }
 
 shared_ptr<DX12R_CommandList> DX12S_CommandSystem::GetCommandList()

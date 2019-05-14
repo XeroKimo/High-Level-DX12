@@ -42,4 +42,6 @@ private:
 	UINT m_rtvDescriptorSize;
 	UINT m_frameBufferCount = 2;
 	UINT m_frameIndex;
+
+	DX12Interface* m_interface;
 };
